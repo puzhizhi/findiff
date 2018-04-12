@@ -35,26 +35,27 @@ You can find the documentation of the code including examples of application at 
 _findiff_ works in any number of dimensions. But for the sake of demonstration, suppose you
 want to differentiate four-dimensional function given as a 4D array `f` with coordiantes `x, y, z, t`.
 
-First derivatives ![d_dx](docs/frontpage/d_dx.png), ![d_dz](docs/frontpage/d_dz.png):
-
+![d_dx](docs/frontpage/d_dx.png): 
 ```python
 # axis 0 = x
 d_dx = FinDiff(0, dx)
 df_dx = d_dx(f)
+```
 
+![d_dz](docs/frontpage/d_dz.png):
+```python
 # axis 2 = z
 d_dz = FinDiff(2, dz)
 df_dz = d_dz(f)
 ```
 
+![d2_dx2](docs/frontpage/d2_dx2.png):
 ```python
-#
-# Second derivatives
-#
-# along axis 0:
 d2_dx2 = FinDiff(0, dx, 2)
 d2f_dx2 = d2_dx2(f)
+```
 
+```python
 # along axis 1:
 d2_dy2 = FinDiff(1, dy, 2)
 d2f_dy2 = d2_dy2(f)
