@@ -35,46 +35,63 @@ You can find the documentation of the code including examples of application at 
 _findiff_ works in any number of dimensions. But for the sake of demonstration, suppose you
 want to differentiate four-dimensional function given as a 4D array `f` with coordiantes `x, y, z, t`.
 
-![d_dx](docs/frontpage/d_dx.png): 
+
+<p align="center">
+  <img src="docs/frontpage/d_dx.png">
+</p>
+
 ```python
 # axis 0 = x
 d_dx = FinDiff(0, dx)
 df_dx = d_dx(f)
 ```
 
-![d_dz](docs/frontpage/d_dz.png):
+<p align="center">
+  <img src="docs/frontpage/d_dz.png">
+</p>
+
 ```python
 # axis 2 = z
 d_dz = FinDiff(2, dz)
 df_dz = d_dz(f)
 ```
 
-![d2_dx2](docs/frontpage/d2_dx2.png):
+<p align="center">
+  <img src="docs/frontpage/d2_dx2.png">
+</p>
+
 ```python
 d2_dx2 = FinDiff(0, dx, 2)
 d2f_dx2 = d2_dx2(f)
 ```
 
+<p align="center">
+  <img src="docs/frontpage/d2_dxdy.png">
+</p>
+
 ```python
-# along axis 1:
-d2_dy2 = FinDiff(1, dy, 2)
-d2f_dy2 = d2_dy2(f)
+d2_dxdy = FinDiff((0, dx), (1, dy))
+d2_dxdy(f)
+```
 
-# mixed derivative:
-d2_dxdz = FinDiff((0, dx), (2, dz))
-d2_dxdz(f)
+<p align="center">
+  <img src="docs/frontpage/d8_dy8.png">
+</p>
 
+```python
 # 8th derivative with respect to axis 1
 d8_dy8 = FinDiff(1, dy, 8)
 d8f_dy8 = d8_dy8(f)
+```
 
-# Mixed 3rd derivatives, twice with respect to x, once w.r.t. z
-d3_dx2dz = FinDiff((0, dx, 2), (2, dz))
+<p align="center">
+  <img src="docs/frontpage/lc.png">
+</p>
 
+```python
 # You can also create linear combinations of differential operators
-diff_op = Coefficient(2) * FinDiff((0, dz, 2), (2, dz, 1)) + Coefficient(3) * FinDiff((0, dx, 1), (1, dy, 2))
+# Mixed 3rd derivatives, twice with respect to x, once w.r.t. z
 
-# and even use variable coefficients:
 X, Y, Z, U = numpy.meshgrid(x, y, z, u, indexing="ij")
 diff_op = Coefficient(2*X) * FinDiff((0, dz, 2), (2, dz, 1)) + Coefficient(3*Y*Z**2) * FinDiff((0, dx, 1), (1, dy, 2))
 
