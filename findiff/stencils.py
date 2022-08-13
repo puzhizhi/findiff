@@ -1,4 +1,5 @@
 import math
+from functools import wraps
 from itertools import product
 
 import numpy as np
@@ -150,6 +151,7 @@ class StencilSet(object):
 
 
 def not_symbolic(func):
+    @wraps(func)
     def inner(obj, *args, **kwargs):
         if obj.symbolic:
             raise NotImplementedError('%s cannot be used in symbolic mode.' % func.__name__)
@@ -210,6 +212,34 @@ class Stencil:
 
     def __repr__(self):
         return str(self.values)
+
+    @property
+    def values(self):
+        return self.sol_as_dict
+
+    @property
+    def accuracy(self):
+        return self._calc_accuracy()
+
+    def as_expression(self, func_symbol='u', index_symbols=None):
+        if isinstance(index_symbols, str):
+            index_symbols = [Symbol(c) for c in index_symbols]
+        if not index_symbols:
+            index_symbols = [Symbol('i_%d' % axis) for axis in range(self.ndims)]
+        assert len(index_symbols) == self.ndims
+        if isinstance(index_symbols[0], str):
+            index_symbols = [Symbol(s) for s in index_symbols]
+        u = IndexedBase(func_symbol)
+        expr = 0
+        for off, coef in self.values.items():
+            off_inds = [index_symbols[axis] + off[axis] for axis in range(self.ndims)]
+            expr += coef * u[off_inds]
+        symbols = {'indices': index_symbols, 'function': u}
+
+        if isinstance(self.spacings[0], Symbol):
+            symbols['spacings'] = self.spacings
+
+        return expr, symbols
 
     def _apply_on_mask(self, f, mask):
         result = np.zeros_like(f)
@@ -272,14 +302,6 @@ class Stencil:
         if stop < 0:
             stop = length - start
         return slice(start, stop)
-
-    @property
-    def values(self):
-        return self.sol_as_dict
-
-    @property
-    def accuracy(self):
-        return self._calc_accuracy()
 
     def _calc_accuracy(self):
         tol = 1.E-6
@@ -351,26 +373,6 @@ class Stencil:
         """Checks the linear independence of the rows of a matrix."""
         matrix = np.array(matrix).astype(float)
         return np.linalg.matrix_rank(matrix) == len(matrix)
-
-    def as_expression(self, func_symbol='u', index_symbols=None):
-        if isinstance(index_symbols, str):
-            index_symbols = [Symbol(c) for c in index_symbols]
-        if not index_symbols:
-            index_symbols = [Symbol('i_%d' % axis) for axis in range(self.ndims)]
-        assert len(index_symbols) == self.ndims
-        if isinstance(index_symbols[0], str):
-            index_symbols = [Symbol(s) for s in index_symbols]
-        u = IndexedBase(func_symbol)
-        expr = 0
-        for off, coef in self.values.items():
-            off_inds = [index_symbols[axis] + off[axis] for axis in range(self.ndims)]
-            expr += coef * u[off_inds]
-        symbols = {'indices': index_symbols, 'function': u}
-
-        if isinstance(self.spacings[0], Symbol):
-            symbols['spacings'] = self.spacings
-
-        return expr, symbols
 
 
 

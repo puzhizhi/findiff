@@ -2,6 +2,7 @@ import unittest
 from sympy import symbols
 
 from findiff import Equation
+from findiff.symbolics import Symbol, Rational
 
 
 class TestEquation(unittest.TestCase):
@@ -36,3 +37,95 @@ class TestEquation(unittest.TestCase):
         eq = Equation(x, 1)
         with self.assertRaises(KeyError):
             eq.as_subs(key_side='bla')
+
+    def test_multiply_equation(self):
+        x = Symbol('x')
+        eq = Equation(x, 1)
+        actual = eq * 2
+        self.assertEqual(Equation(2*x, 2), actual)
+
+    def test_rmultiply_equation(self):
+        x = Symbol('x')
+        eq = Equation(x, 1)
+        actual = 2 * eq
+        self.assertEqual(Equation(2*x, 2), actual)
+
+    def test_multiply_equations(self):
+        x = Symbol('x')
+        eq = Equation(x, 2)
+        actual = eq * eq
+        self.assertEqual(Equation(x**2, 4), actual)
+
+    def test_add_equation(self):
+        x = Symbol('x')
+        eq = Equation(x, 1)
+        actual = eq + 2
+        self.assertEqual(Equation(x+2, 3), actual)
+
+    def test_radd_equation(self):
+        x = Symbol('x')
+        eq = Equation(x, 1)
+        actual = 2 + eq
+        self.assertEqual(Equation(2+x, 3), actual)
+
+    def test_add_equations(self):
+        x = Symbol('x')
+        eq = Equation(x, 2)
+        actual = eq + eq
+        self.assertEqual(Equation(2*x, 4), actual)
+
+    def test_sub_equation(self):
+        x = Symbol('x')
+        eq = Equation(x, 1)
+        actual = eq - 2
+        self.assertEqual(Equation(x-2, -1), actual)
+
+    def test_rsub_equation(self):
+        x = Symbol('x')
+        eq = Equation(x, 1)
+        actual = 2 - eq
+        self.assertEqual(Equation(2-x, 1), actual)
+
+    def test_sub_equations(self):
+        x = Symbol('x')
+        eq = Equation(x, 2)
+        actual = eq - 2*eq
+        self.assertEqual(Equation(-x, -2), actual)
+
+    def test_div_equation(self):
+        x = Symbol('x')
+        eq = Equation(x, 1)
+        actual = eq / x
+        self.assertEqual(Equation(1, 1/x), actual)
+
+    def test_rdiv_equation(self):
+        x = Symbol('x')
+        eq = Equation(x, 1)
+        actual = x / eq
+        self.assertEqual(Equation(1, x), actual)
+
+    def test_div_equations(self):
+        x = Symbol('x')
+        y = Symbol('y')
+        eq = Equation(x, 1)
+        eq2 = Equation(y, 2)
+        actual = eq / eq2
+        self.assertEqual(Equation(x/y, Rational(1, 2)), actual)
+
+    def test_apply_sqrt(self):
+        from findiff.symbolics import sqrt
+        x = Symbol('x', positive=True)
+        eq = Equation(x**2, 4)
+        actual = sqrt(eq)
+        self.assertEqual(Equation(x, 2), actual)
+
+    def test_swap(self):
+        x = Symbol('x')
+        eq = Equation(x, 2)
+        self.assertEqual(Equation(2, x), eq.swap())
+
+    def test_pow(self):
+        x = Symbol('x')
+        eq = Equation(x, 2)
+        self.assertEqual(Equation(x**2, 4), eq**2)
+
