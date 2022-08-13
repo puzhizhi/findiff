@@ -2,6 +2,8 @@ import math
 from itertools import product
 
 import numpy as np
+import sympy
+from sympy import Symbol, Matrix, IndexedBase
 
 from .utils import to_long_index, to_index_tuple
 
@@ -147,9 +149,19 @@ class StencilSet(object):
         return product(*typ)
 
 
+def not_symbolic(func):
+    def inner(obj, *args, **kwargs):
+        if obj.symbolic:
+            raise NotImplementedError('%s cannot be used in symbolic mode.' % func.__name__)
+        return func(obj, *args, **kwargs)
+    return inner
+
+
 class Stencil:
 
-    def __init__(self, offsets, partials, spacings=None):
+    def __init__(self, offsets, partials, spacings=None, symbolic=False):
+
+        self.symbolic = symbolic
 
         self.partials = partials
         self.max_order = 100
@@ -163,12 +175,21 @@ class Stencil:
         if spacings is None:
             spacings = [1] * ndims
         elif not hasattr(spacings, "__len__"):
-            spacings = [spacings] * ndims
+            if isinstance(spacings, str):
+                spacings = [Symbol(spacings)] * ndims
+            else:
+                spacings = [spacings] * ndims
+        elif hasattr(spacings, "__len__") and isinstance(spacings[0], str):
+            assert symbolic
+            spacings = [Symbol(s) for s in spacings]
+
         assert len(spacings) == ndims
         self.spacings = spacings
+
         self.ndims = ndims
         self.sol, self.sol_as_dict = self._make_stencil()
 
+    @not_symbolic
     def __call__(self, f, at=None, on=None):
         if at is not None and on is None:
             return self._apply_at_single_point(f, at)
@@ -178,6 +199,11 @@ class Stencil:
             else:
                 return self._apply_on_mask(f, on)
         raise Exception('Cannot specify both *at* and *on* parameters.')
+
+    def __getitem__(self, offset):
+        if not hasattr(offset, '__len__'):
+            offset = offset,
+        return self.values.get(offset)
 
     def __str__(self):
         return str(self.values)
@@ -278,10 +304,17 @@ class Stencil:
             if term in self.partials:
                 weight = self.partials[term]
                 multiplicity = np.prod([math.factorial(a) for a in term])
-                vol = np.prod([self.spacings[j] ** term[j] for j in range(self.ndims)])
+                if self.symbolic:
+                    vol = sympy.Mul(*[self.spacings[j] ** term[j] for j in range(self.ndims)])
+                else:
+                    vol = np.prod([self.spacings[j] ** term[j] for j in range(self.ndims)])
                 rhs[i] = weight * multiplicity / vol
 
-        sol = np.linalg.solve(sys_matrix, rhs)
+        if self.symbolic:
+            sol = sympy.linsolve((Matrix(sys_matrix), Matrix(rhs)))
+            sol = list(sol)[0]
+        else:
+            sol = np.linalg.solve(sys_matrix, rhs)
         assert len(sol) == len(self.offsets)
         return sol, {off: coef for off, coef in zip(self.offsets, sol) if coef != 0}
 
@@ -318,3 +351,27 @@ class Stencil:
         """Checks the linear independence of the rows of a matrix."""
         matrix = np.array(matrix).astype(float)
         return np.linalg.matrix_rank(matrix) == len(matrix)
+
+    def as_expression(self, func_symbol='u', index_symbols=None):
+        if isinstance(index_symbols, str):
+            index_symbols = [Symbol(c) for c in index_symbols]
+        if not index_symbols:
+            index_symbols = [Symbol('i_%d' % axis) for axis in range(self.ndims)]
+        assert len(index_symbols) == self.ndims
+        if isinstance(index_symbols[0], str):
+            index_symbols = [Symbol(s) for s in index_symbols]
+        u = IndexedBase(func_symbol)
+        expr = 0
+        for off, coef in self.values.items():
+            off_inds = [index_symbols[axis] + off[axis] for axis in range(self.ndims)]
+            expr += coef * u[off_inds]
+        symbols = {'indices': index_symbols, 'function': u}
+
+        if isinstance(self.spacings[0], Symbol):
+            symbols['spacings'] = self.spacings
+
+        return expr, symbols
+
+
+
+

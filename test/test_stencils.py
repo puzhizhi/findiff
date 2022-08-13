@@ -1,6 +1,7 @@
 import unittest
 
 import numpy as np
+from sympy import Rational, symbols, Symbol, simplify
 
 from findiff import Identity, FinDiff
 from findiff.stencils import Stencil
@@ -189,3 +190,63 @@ class TestStencilOperations(unittest.TestCase):
             for offset, expected_coef in expected_stencil.items():
                 actual_coef = actual_stencil[offset]
                 self.assertAlmostEqual(expected_coef, actual_coef)
+
+    def test_stencil_1d_symbolic(self):
+        offsets = [0, 1, 2]
+        stencil = Stencil(offsets, {(1,): 1}, symbolic=True)
+        self.assertEqual(-Rational(3, 2), stencil[0])
+
+    def test_stencil_2d_laplacian_symbolic(self):
+        offsets = [(0, 0), (2, 0), (-2, 0), (0, 1), (0, -1)]
+        stencil = Stencil(offsets, {(2, 0): 1, (0,2): 1}, symbolic=True)
+        self.assertEqual(-Rational(5, 2), stencil[(0, 0)])
+
+    def test_stencil_2d_laplacian_symbolic(self):
+        offsets = [(0, 0), (1, 0), (-1, 0), (0, 1), (0, -1)]
+        stencil = Stencil(offsets, {(2, 0): 1, (0,2): 1}, spacings=['\Delta x', '\Delta y'], symbolic=True)
+
+        dx, dy = Symbol(r'\Delta x'), Symbol(r'\Delta y')
+
+        self.assertEqual(-2/dx**2 - 2/dy**2, simplify(stencil[0, 0]))
+
+    def test_stencil_2d_laplacian_symbolic_with_symbol_spacings(self):
+        offsets = [(0, 0), (1, 0), (-1, 0), (0, 1), (0, -1)]
+        dx, dy = Symbol(r'\Delta x'), Symbol(r'\Delta y')
+        stencil = Stencil(offsets, {(2, 0): 1, (0,2): 1}, spacings=[dx, dy], symbolic=True)
+        self.assertEqual(-2/dx**2 - 2/dy**2, simplify(stencil[0, 0]))
+
+    def test_stencil_2d_laplacian_symbolic_with_symbol_spacing(self):
+        offsets = [(0, 0), (1, 0), (-1, 0), (0, 1), (0, -1)]
+        dx = Symbol(r'\Delta')
+        stencil = Stencil(offsets, {(2, 0): 1, (0,2): 1}, spacings=dx, symbolic=True)
+        self.assertEqual(-4/dx**2, simplify(stencil[0, 0]))
+
+    def test_stencil_2d_laplacian_symbolic_with_symbol_spacing_as_expression(self):
+        offsets = [(0, 0), (1, 0), (-1, 0), (0, 1), (0, -1)]
+        dx = Symbol(r'\Delta')
+        stencil = Stencil(offsets, {(2, 0): 1, (0,2): 1}, spacings=dx, symbolic=True)
+        expr, symbols = stencil.as_expression()
+        self.assertEqual(str(expr), 'u[i_0 + 1, i_1]/\Delta**2 + u[i_0 - 1, i_1]/\Delta**2 + u[i_0, i_1 + 1]/\Delta**2 + u[i_0, i_1 - 1]/\Delta**2 - 4*u[i_0, i_1]/\Delta**2')
+        self.assertEqual(symbols['spacings'], [dx]*2)
+
+    def test_stencil_2d_laplacian_symbolic_as_expression_with_symbols(self):
+        offsets = [(0, 0), (1, 0), (-1, 0), (0, 1), (0, -1)]
+        dx = Symbol(r'\Delta')
+        stencil = Stencil(offsets, {(2, 0): 1, (0,2): 1}, spacings=dx, symbolic=True)
+        actual, _ = stencil.as_expression('u', 'ij')
+        self.assertEqual(str(actual), 'u[i + 1, j]/\Delta**2 + u[i - 1, j]/\Delta**2 + u[i, j + 1]/\Delta**2 + u[i, j - 1]/\Delta**2 - 4*u[i, j]/\Delta**2')
+
+    def test_discretize_helmholtz_1d(self):
+        stencil = Stencil(offsets=[-1, 0, 1], partials={(2,): 1}, spacings=[r'\Delta'], symbolic=True)
+        print(stencil)
+        d2_dx2, symbols = stencil.as_expression(index_symbols=['n'])
+        n, = symbols['indices']
+        u = symbols['function']
+        helmholtz = d2_dx2 - u[n]
+        self.assertEqual('-u[n] + u[n + 1]/\Delta**2 + u[n - 1]/\Delta**2 - 2*u[n]/\Delta**2', str(helmholtz))
+
+    def test_apply_stencil_should_fail_in_symbolic_mode(self):
+        stencil = Stencil(offsets=[-1, 0, 1], partials={(2,): 1}, spacings=[r'\Delta'], symbolic=True)
+        with self.assertRaises(NotImplementedError) as e:
+            stencil(at=1)
+            self.assertEqual('NotImplementedError: __call__ cannot be used in symbolic mode.', str(e))
