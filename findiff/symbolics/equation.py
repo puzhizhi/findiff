@@ -24,6 +24,7 @@ names = [
  'atan',
  'atan2',
  'atanh',
+ 'collect',
  'conjugate',
  'cos',
  'cosh',
@@ -41,6 +42,7 @@ names = [
  'erfinv',
  'exp',
  'exp_polar',
+ 'factor',
  'latex',
  'log',
  'loggamma',
@@ -69,6 +71,7 @@ asinh = None
 atan = None
 atan2 = None
 atanh = None
+collect = None
 conjugate = None
 cos = None
 cosh = None
@@ -86,6 +89,7 @@ erfi = None
 erfinv = None
 exp = None
 exp_polar = None
+factor = None
 latex = None
 log = None
 loggamma = None

@@ -1,0 +1,8 @@
+div.output_area {
+    margin-top: 10px;
+}
+
+.nbinput .prompt,
+.nboutput .prompt {
+    display: none;
+}
