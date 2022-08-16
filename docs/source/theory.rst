@@ -1,5 +1,5 @@
-Theory
-======
+Theoretical Background
+======================
 
 As the name *findiff* suggests, the package uses finite difference
 schemes to approximate differential operators numerically. In this
@@ -197,3 +197,41 @@ It is not obvious that a superposition like this gives the
 "best" stencil in 2D with nearest neighbors only. However,
 it can be shown that this is indeed the case.
 
+In the multidimensional case, our offset set :math:`A` is now a
+set of tuples with lengths equal to the number of space dimensions.
+But now, we have to insert the multidimensional Taylor series. Like
+in the one-dimensional case, we can demand each term either to vanish
+or to be equal to one, depending on which partial derivative we want
+to pick up. It is just more cumbersome to write down than in the 1D case.
+For example, in 2D, for a specific mixed partial derivative:
+
+.. math::
+
+    \left(\frac{\partial^2}{\partial x\partial y}\right)_{k_x, k_y}
+    &=
+    f_{k_x, k_y}\sum_{(i_x, i_y) \in A} c_{i_x, i_y}
+    +\\
+    &\left(\frac{\partial f}{\partial x}\right)_{k_x, k_y} \Delta x
+    \sum_{(i_x, i_y) \in A} c_{i_x, i_y} i_x
+    +
+    \left(\frac{\partial f}{\partial y}\right)_{k_x, k_y}\Delta y
+    \sum_{(i_x, i_y) \in A} c_{i_x, i_y} i_y
+    +\\
+    &\frac{1}{2}\left(\frac{\partial^2 f}{\partial x^2}\right)_{k_x, k_y}\Delta x^2
+    \sum_{(i_x, i_y) \in A} c_{i_x, i_y} i_x^2
+    +
+    \frac{1}{2}\left(\frac{\partial^2 f}{\partial y^2}\right)_{k_x, k_y}\Delta y^2
+    \sum_{(i_x, i_y) \in A} c_{i_x, i_y} i_y^2
+    +\\
+    &\frac{2}{2}\left(\frac{\partial^2 f}{\partial x \partial y}\right)_{k_x, k_y}\Delta x \Delta y
+    \sum_{(i_x, i_y) \in A} c_{i_x, i_y} i_x i_y
+    + \ldots
+
+
+
+There are only two complications compared to 1D: first, it has to
+be taken care to correctly enumerate all the terms in the Taylor series,
+which is not all that straight forward as in 1D and second, not every term
+gives an equation which is linearly independent of the previously selected
+equations. But apart from that, the approach is quite the same: enumerate
+the Taylor terms, extract the equations, solve the equation system.
