@@ -1,10 +1,12 @@
 import unittest
+from itertools import product
 
 import numpy as np
-from sympy import Rational, symbols, Symbol, simplify
+from sympy import Rational, symbols, Symbol, simplify, expand
 
 from findiff import Identity, FinDiff
 from findiff.stencils import Stencil
+from findiff.symbolics.deriv import DerivativeSymbol
 
 
 class TestStencilOperations(unittest.TestCase):
@@ -250,3 +252,63 @@ class TestStencilOperations(unittest.TestCase):
         with self.assertRaises(NotImplementedError) as e:
             stencil(at=1)
             self.assertEqual('NotImplementedError: __call__ cannot be used in symbolic mode.', str(e))
+
+    def test_stencil_using_derivativesymbol(self):
+        D = DerivativeSymbol
+        d = D(0, 2)
+        stencil = Stencil(offsets=[-1, 0, 1], partials=d, symbolic=True)
+        self.assertEqual(
+            Stencil(offsets=[-1, 0, 1], partials={(2,): 1}, symbolic=True).values,
+            stencil.values
+        )
+
+    def test_stencil_using_derivativesymbol_2d_laplace(self):
+        D = DerivativeSymbol
+        d = D(0, 2) + D(1, 2)
+        stencil = Stencil(offsets=[(0, 0), (1, 0), (-1, 0), (0, 1), (0, -1)], partials=d, symbolic=True)
+        self.assertEqual(
+            Stencil(offsets=[(0, 0), (1, 0), (-1, 0), (0, 1), (0, -1)], partials={(2, 0): 1, (0, 2): 1}, symbolic=True).values,
+            stencil.values
+        )
+
+    def test_stencil_using_derivativesymbol_2d_with_constant_factors(self):
+        D = DerivativeSymbol
+        d = D(0, 2) - 2 * D(1, 2)
+        stencil = Stencil(offsets=[(0, 0), (1, 0), (-1, 0), (0, 1), (0, -1)], partials=d, symbolic=True)
+        self.assertEqual(
+            Stencil(offsets=[(0, 0), (1, 0), (-1, 0), (0, 1), (0, -1)], partials={(2, 0): 1, (0, 2): -2}, symbolic=True).values,
+            stencil.values
+        )
+
+    def test_stencil_using_derivativesymbol_2d_with_constant_minus_one(self):
+        D = DerivativeSymbol
+        d = D(0, 2) - D(1, 2)
+        stencil = Stencil(offsets=[(0, 0), (1, 0), (-1, 0), (0, 1), (0, -1)], partials=d, symbolic=True)
+        self.assertEqual(
+            Stencil(offsets=[(0, 0), (1, 0), (-1, 0), (0, 1), (0, -1)], partials={(2, 0): 1, (0, 2): -1}, symbolic=True).values,
+            stencil.values
+        )
+
+    def test_binomial_expanded_without_simplify_does_not_combine(self):
+        D = DerivativeSymbol
+        d = (D(0) - D(1)) * (D(0) + D(1))
+        actual = d.expand()
+
+        with self.assertRaises(ValueError):
+            stencil = Stencil(offsets=[(0, 0), (1, 0), (-1, 0), (0, 1), (0, -1)], partials=d, symbolic=True)
+
+    def test_apply_stencil_mixed(self):
+        x = y = z = np.linspace(1-0.1, 1+0.1, 11)
+        dx = dy = dz = x[1] - x[0]
+        X, Y, Z = np.meshgrid(x, y, z, indexing='ij')
+
+        f = X**3*Y**2*Z
+        offsets = list(product([-1, 0, 1], repeat=3))
+        d3_dx2dy = Stencil(offsets, {(2, 1, 0): 1}, spacings=[dx, dy, dz])
+        expected = 12.  # f(1,1,1)
+        actual = d3_dx2dy(f, at=(5, 5, 5))
+        self.assertAlmostEqual(expected, actual)
+
+        d3_dx2dy_sym = Stencil(offsets, {(2, 1, 0): 1}, spacings=[dx, dy, dz], symbolic=True)
+
+

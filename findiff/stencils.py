@@ -4,19 +4,21 @@ from itertools import product
 
 import numpy as np
 import sympy
-from sympy import Symbol, Matrix, IndexedBase
+from sympy import Symbol, Matrix, IndexedBase, Add, Mul, Expr, Wild
+from sympy.core.numbers import NegativeOne
 
+from .symbolics.deriv import DerivativeSymbol
 from .utils import to_long_index, to_index_tuple
 
 
 class StencilSet(object):
     """
-    Represent the finite difference stencil for a given differential operator.
+    Represent the finite difference stencils for a given differential operator.
     """
 
     def __init__(self, diff_op, shape, old_stl=None):
         """
-        Constructor for Stencil objects.
+        Constructor for StencilSet objects.
 
         :param shape: tuple of ints
             Shape of the grid on which the stencil should be applied.
@@ -45,6 +47,9 @@ class StencilSet(object):
 
     def __repr__(self):
         return str(self.data)
+
+    def __getitem__(self, key):
+        return self.data.get(key)
 
     def apply(self, u, idx0):
         """ Applies the stencil to a point in an equidistant grid.
@@ -156,16 +161,41 @@ def not_symbolic(func):
         if obj.symbolic:
             raise NotImplementedError('%s cannot be used in symbolic mode.' % func.__name__)
         return func(obj, *args, **kwargs)
+
     return inner
 
 
 class Stencil:
+    """Create a stencil based on given offsets for a given differential operator of the
+        form
+
+        .. math::
+            \sum_i c_i \prod_{j=0}^N\partial^{n_j}_{j}
+
+        based on a given list of index offsets, where :math:`\partial_i^{k}` is the :math:`k`-th
+        partial derivative with respect to axis :math:`i`, :math:`N` is the dimension
+        of space and :math:`c_i` are real constants and :math:`n_j` are non-negative
+        integers.
+    """
 
     def __init__(self, offsets, partials, spacings=None, symbolic=False):
+        """
+
+        Parameters
+        ----------
+        offsets :   list of ints (1D) or list of int-tuples (>1D)
+            The offsets from which to compute the stencil.
+        partials :  dict or sympy expression with DerivativeSymbol
+            The differential operator for which to compute the stencil.
+        spacings : list of float, or list of str, or list of Symbols, default = [1]*ndims
+            The grid spacing along each axis. Can be a string or a sympy Symbol
+            in case of symbolic calculation.
+        symbolic : bool
+            Flag to trigger symbolic calculation instead of numerical.
+        """
 
         self.symbolic = symbolic
 
-        self.partials = partials
         self.max_order = 100
         if not hasattr(offsets[0], "__len__"):
             ndims = 1
@@ -173,6 +203,15 @@ class Stencil:
         else:
             ndims = len(offsets[0])
             self.offsets = offsets
+        self.ndims = ndims
+
+        if isinstance(partials, set):
+            raise TypeError('partials should be a dict, not a set.')
+
+        if not isinstance(partials, dict):
+            partials = self._convert_partials_to_dict(partials)
+
+        self.partials = partials
 
         if spacings is None:
             spacings = [1] * ndims
@@ -188,7 +227,6 @@ class Stencil:
         assert len(spacings) == ndims
         self.spacings = spacings
 
-        self.ndims = ndims
         self.sol, self.sol_as_dict = self._make_stencil()
 
     @not_symbolic
@@ -203,9 +241,13 @@ class Stencil:
         raise Exception('Cannot specify both *at* and *on* parameters.')
 
     def __getitem__(self, offset):
+        """ Return the coefficient of the stencil at a given offset."""
         if not hasattr(offset, '__len__'):
             offset = offset,
         return self.values.get(offset)
+
+    def __len__(self):
+        return len(self.values)
 
     def __str__(self):
         return str(self.values)
@@ -213,15 +255,33 @@ class Stencil:
     def __repr__(self):
         return str(self.values)
 
+    def keys(self):
+        return self.values.keys()
+
     @property
     def values(self):
         return self.sol_as_dict
 
     @property
     def accuracy(self):
+        """Returns the accuracy (error order) of a given stencil."""
         return self._calc_accuracy()
 
     def as_expression(self, func_symbol='u', index_symbols=None):
+        """Convert stencil to sympy expression.
+
+        Parameters
+        ----------
+        func_symbol : str
+            The name of the function used in the returned expression.
+        index_symbols : list of str, default = ['i_0', 'i_1', 'i_2', ... ]
+            The name of the indices, one per axis, to be used in the expression.
+
+        Returns
+        -------
+        expr, symbols :  sympy.Expr, dict
+            The sympy expression and a dictionary with the used sympy symbols.
+        """
         if isinstance(index_symbols, str):
             index_symbols = [Symbol(c) for c in index_symbols]
         if not index_symbols:
@@ -374,6 +434,67 @@ class Stencil:
         matrix = np.array(matrix).astype(float)
         return np.linalg.matrix_rank(matrix) == len(matrix)
 
+    def _convert_partials_to_dict(self, expr):
+        self._check_sanity(expr)
 
+        partials = {}
 
+        def parse_mul(mul):
+            w = 1
+            p = [0] * self.ndims
+            for arg in mul.args:
+                if type(arg) == DerivativeSymbol:
+                    p[arg.axis] = arg.degree
+                else:
+                    w *= int(arg)
+            return tuple(p), w
+
+        if type(expr) == Add:
+            for term in expr.args:
+                if type(term) == DerivativeSymbol:
+                    p = [0] * self.ndims
+                    w = 1
+                    p[term.axis] = term.degree
+                elif type(term) == Mul:
+                    p, w = parse_mul(term)
+                partials[tuple(p)] = w
+        elif type(expr) == Mul:
+            p, w = parse_mul(expr)
+        elif type(expr) == DerivativeSymbol:
+            p = [0] * self.ndims
+            w = 1
+            p[expr.axis] = expr.degree
+        partials[tuple(p)] = w
+        return partials
+
+    def _check_sanity(self, expr):
+
+        def is_valid_mul(ex):
+            for arg in ex.args:
+                if arg.is_number:
+                    continue
+                if isinstance(arg, Expr) and not type(arg) == DerivativeSymbol:
+                    return False
+            return True
+
+        def is_valid_add(ex):
+            for arg in ex.args:
+                if type(arg) == Mul:
+                    if not is_valid_mul(arg):
+                        return False
+                elif type(arg) == DerivativeSymbol:
+                    pass
+                else:
+                    return False
+            return True
+
+        err_msg = 'Expression is not in required form.'
+        if type(expr) == DerivativeSymbol:
+            return
+        elif type(expr) == Mul:
+            if not is_valid_mul(expr):
+                raise ValueError(err_msg)
+        elif type(expr) == Add:
+            if not is_valid_add(expr):
+                raise ValueError(err_msg)
 

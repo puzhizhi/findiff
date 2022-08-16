@@ -11,4 +11,6 @@ Examples
     examples-non-uniform-grids
     examples-matrix
     examples/stoermer
+    examples/symbolic-stencil
+
 
