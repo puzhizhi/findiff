@@ -84,3 +84,26 @@ def test_disc_part_deriv_1d_acc4():
     assert_array_almost_equal(np.cos(x[-1:]), df_dx[-1:], decimal=6)
     assert_array_almost_equal(np.cos(x[1:-1]), df_dx[1:-1], decimal=6)
 
+
+def test_disc_part_deriv_2d_pure():
+    grid = EquidistantGrid((0, 1, 101), (0, 1, 101))
+    X, Y = np.meshgrid(*grid.coords, indexing='ij')
+
+    f = np.sin(X)*np.sin(Y)
+    pd = PartialDerivative({1: 2})
+    d2_dy2 = DiscretizedPartialDerivative(pd, grid, acc=4)
+    d2f_dy2 = d2_dy2.apply(f)
+
+    assert_array_almost_equal(-np.sin(X)*np.sin(Y), d2f_dy2)
+
+
+def test_disc_part_deriv_2d_mixed():
+    grid = EquidistantGrid((0, 1, 101), (0, 1, 101))
+    X, Y = np.meshgrid(*grid.coords, indexing='ij')
+
+    f = np.sin(X)*np.sin(Y)
+    pd = PartialDerivative({0: 1, 1: 1})
+    d2_dxdy = DiscretizedPartialDerivative(pd, grid, acc=4)
+    d2f_dxdy = d2_dxdy.apply(f)
+
+    assert_array_almost_equal(np.cos(X)*np.cos(Y), d2f_dxdy)

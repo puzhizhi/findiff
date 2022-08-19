@@ -90,9 +90,9 @@ class DiscretizedPartialDerivative:
             self.stencil_sets[deriv] = StencilSet1D(deriv, h, acc)
 
     def apply(self, arr):
-        res = np.zeros_like(arr)
 
         for axis in self.partial.axes:
+            res = np.zeros_like(arr)
             deriv = self.partial.degree(axis)
             stencil = self.stencil_sets[deriv].central
             left = abs(min(stencil.offsets))
@@ -105,6 +105,7 @@ class DiscretizedPartialDerivative:
 
             stencil = self.stencil_sets[deriv].backward
             res = self._apply_axis(res, arr, axis, stencil, arr.shape[axis] - bdnry_size, arr.shape[axis])
+            arr = res
 
         return res
 
