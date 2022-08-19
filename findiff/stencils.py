@@ -81,7 +81,7 @@ class StencilSet(object):
 
         idx0 = np.array(idx0)
         du = 0.
-        for o, c in stl.items():
+        for o, c in stl.data():
             idx = idx0 + o
             du += c * u[tuple(idx)]
 

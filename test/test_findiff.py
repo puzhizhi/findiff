@@ -293,7 +293,7 @@ class FinDiffTest(unittest.TestCase):
 
         self.assertEqual(len(d1), len(d2))
 
-        for k, v in d1.items():
+        for k, v in d1.data():
             self.assertAlmostEqual(v, d2[k])
 
     def test_matrix_1d(self):

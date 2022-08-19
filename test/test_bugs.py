@@ -93,7 +93,7 @@ class TestOldBugs(unittest.TestCase):
         if len(actual) != len(expected):
             return False
 
-        for key, value in actual.items():
+        for key, value in actual.data():
             self.assertAlmostEqual(actual[key], expected[key], places=places)
 
 

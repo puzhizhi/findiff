@@ -37,7 +37,7 @@ class TestStencilOperations(unittest.TestCase):
 
         self.assertEqual(4, stencil.accuracy)
         self.assertEqual(len(expected), len(stencil.values))
-        for off, coeff in stencil.values.items():
+        for off, coeff in stencil.values.data():
             self.assertAlmostEqual(coeff, expected[off])
 
     def test_solve_laplace_2d_with_5_points_times_2(self):
@@ -64,7 +64,7 @@ class TestStencilOperations(unittest.TestCase):
         }
 
         self.assertEqual(len(expected), len(stencil.values))
-        for off, coeff in stencil.values.items():
+        for off, coeff in stencil.values.data():
             self.assertAlmostEqual(coeff, expected[off])
         self.assertEqual(2, stencil.accuracy)
 
@@ -311,4 +311,8 @@ class TestStencilOperations(unittest.TestCase):
 
         d3_dx2dy_sym = Stencil(offsets, {(2, 1, 0): 1}, spacings=[dx, dy, dz], symbolic=True)
 
-
+    def test_wave_equation_stencil(self):
+        D = DerivativeSymbol
+        dt = Symbol(r'\Delta t', real=True)
+        dx = Symbol(r'\Delta x', real=True)
+        d2_dx2 = Stencil(offsets=[(0, 1), (0, 0), (0, -1)], partials=D(1, 2), spacings=(dt, dx), symbolic=True)
