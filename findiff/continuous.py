@@ -24,7 +24,8 @@ class PartialDerivative:
         return sorted(self.degrees.keys())
 
     def __mul__(self, other):
-        assert isinstance(other, PartialDerivative)
+        if not isinstance(other, PartialDerivative):
+            raise TypeError('PartialDerivative can only multiply other PartialDerivative.')
         new_degrees = dict(self.degrees)
         for axis, degree in other.degrees.items():
             if axis in new_degrees:
@@ -59,15 +60,49 @@ class PartialDerivative:
 class DifferentialOperator:
     """Represents a linear combination of partial derivatives."""
 
-    def __init__(self, partials_dict):
+    def __init__(self, *args):
+        partials_dict = {}
+        for arg in args:
+            coef, degrees = arg
+            pd = PartialDerivative(degrees)
+            if pd not in partials_dict:
+                partials_dict[pd] = coef
+            else:
+                partials_dict[pd] += coef
+
         assert isinstance(partials_dict, dict)
         self._the_sum = partials_dict
 
-    def coefficient(self, partial):
-        return self._the_sum[partial]
+    def terms(self):
+        return [(c, pd) for pd, c in self._the_sum.items()]
 
-    def items(self):
-        return {c: pd for pd, c in self._the_sum.items()}
+    def coefficient(self, partial):
+        if isinstance(partial, PartialDerivative):
+            return self._the_sum.get(partial, 0)
+        return self._the_sum.get(PartialDerivative(partial), 0)
+
+    def __add__(self, other):
+        # Also consider case when other is a number (const * Identity)
+        assert isinstance(other, DifferentialOperator)
+        new_partials = dict(self._the_sum)
+        for pd, c in other._the_sum.items():
+            if pd in new_partials:
+                new_partials[pd] += c
+            else:
+                new_partials[pd] = c
+        return DifferentialOperator(
+            *tuple((c, pd.degrees) for pd, c in new_partials.items())
+        )
+
+    def __mul__(self, other):
+        if type(other) != PartialDerivative:
+            raise TypeError('Multiplication of DifferentialOperator only with PartialDerivative!')
+        new_partials = dict()
+        for pd, c in self._the_sum.items():
+            new_partials[pd * PartialDerivative(other.degrees)] = c
+        return DifferentialOperator(
+            *tuple((c, pd.degrees) for pd, c in new_partials.items())
+        )
 
 
 class Coordinate:

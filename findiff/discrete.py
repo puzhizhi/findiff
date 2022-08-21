@@ -70,10 +70,26 @@ class BackwardStencil1D(Stencil1D):
 
 class StencilSet1D:
 
+    SCHEME_CENTRAL = 'central'
+    SCHEME_FORWARD = 'forward'
+    SCHEME_BACKWARD = 'backward'
+
     def __init__(self, deriv, dx, acc=2):
-        self.forward = ForwardStencil1D(deriv, dx, acc)
-        self.backward = BackwardStencil1D(deriv, dx, acc)
-        self.central = SymmetricStencil1D(deriv, dx, acc)
+        self.stencils = {
+            self.SCHEME_CENTRAL: SymmetricStencil1D(deriv, dx, acc),
+            self.SCHEME_FORWARD: ForwardStencil1D(deriv, dx, acc),
+            self.SCHEME_BACKWARD: BackwardStencil1D(deriv, dx, acc)
+        }
+
+    def get_stencil_data(self, scheme):
+        return self.stencils[scheme].data
+
+    def get_boundary_size(self):
+        return max(self.stencils[self.SCHEME_CENTRAL].offsets)
+
+    def get_num_points_side(self, scheme):
+        offs = self.stencils[scheme].offsets
+        return abs(min(offs)), max(offs)
 
 
 class DiscretizedPartialDerivative:
@@ -94,30 +110,51 @@ class DiscretizedPartialDerivative:
         for axis in self.partial.axes:
             res = np.zeros_like(arr)
             deriv = self.partial.degree(axis)
-            stencil = self.stencil_sets[deriv].central
-            left = abs(min(stencil.offsets))
-            right = arr.shape[axis] - max(stencil.offsets)
-            res = self._apply_axis(res, arr, axis, stencil, left, right)
-            bdnry_size = left
+            stencil_set = self.stencil_sets[deriv]
+            left, right = stencil_set.get_num_points_side(StencilSet1D.SCHEME_CENTRAL)
+            right = arr.shape[axis] - right
+            res = self._apply_axis(res, arr, axis,
+                                   stencil_set.get_stencil_data(StencilSet1D.SCHEME_CENTRAL),
+                                   left, right)
 
-            stencil = self.stencil_sets[deriv].forward
-            res = self._apply_axis(res, arr, axis, stencil, 0, bdnry_size)
+            res = self._apply_axis(res, arr, axis,
+                                   stencil_set.get_stencil_data(StencilSet1D.SCHEME_FORWARD),
+                                   0, stencil_set.get_boundary_size())
 
-            stencil = self.stencil_sets[deriv].backward
-            res = self._apply_axis(res, arr, axis, stencil, arr.shape[axis] - bdnry_size, arr.shape[axis])
+            res = self._apply_axis(res, arr, axis,
+                                   stencil_set.get_stencil_data(StencilSet1D.SCHEME_BACKWARD),
+                                   arr.shape[axis] - stencil_set.get_boundary_size(), arr.shape[axis])
             arr = res
 
         return res
 
-    def _apply_axis(self, res, arr, axis, stencil, left, right):
+    def _apply_axis(self, res, arr, axis, stencil_data, left, right):
         base_sl = slice(left, right)
         multi_base_sl = [slice(None, None)] * arr.ndim
         multi_base_sl[axis] = base_sl
-        for off, coef in stencil.data.items():
+        for off, coef in stencil_data.items():
             off_sl = slice(left + off, right + off)
             multi_off_sl = [slice(None, None)] * arr.ndim
             multi_off_sl[axis] = off_sl
             res[tuple(multi_base_sl)] += coef * arr[tuple(multi_off_sl)]
+        return res
+
+
+class DiscretizedDifferentialOperator:
+
+    def __init__(self, diff_op, grid, acc=2):
+        self.acc = acc
+        self.coefs = []
+        self.partials = []
+
+        for c, pd in diff_op.terms():
+            self.coefs.append(c)
+            self.partials.append(DiscretizedPartialDerivative(pd, grid, acc))
+
+    def apply(self, arr):
+        res = np.zeros_like(arr)
+        for c, pd in zip(self.coefs, self.partials):
+            res += c * pd.apply(arr)
         return res
 
 
