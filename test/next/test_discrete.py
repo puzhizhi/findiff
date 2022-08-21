@@ -2,10 +2,9 @@ import numpy as np
 import unittest
 from numpy.testing import assert_array_equal, assert_array_almost_equal
 
-from findiff.continuous import PartialDerivative, DifferentialOperator
+from findiff.continuous import PartialDerivative
 from findiff.discrete import EquidistantGrid, Stencil1D, SymmetricStencil1D, ForwardStencil1D, BackwardStencil1D, \
-    DiscretizedPartialDerivative, DiscretizedDifferentialOperator
-
+    DiscretizedPartialDerivative, discretized
 
 
 class TestEquidistantGrid(unittest.TestCase):
@@ -25,11 +24,9 @@ class TestStencil1D(unittest.TestCase):
         s = Stencil1D(2, [-1, 0, 1], 1)
         assert {-1: 1, 0: -2, 1: 1} == s.data
 
-
     def test_symmetricstencil1d(self):
         s = SymmetricStencil1D(2, 1, 2)
         assert {-1: 1, 0: -2, 1: 1} == s.data
-
 
     def test_forwardstencil1d(self):
         s = ForwardStencil1D(2, 1, 2)
@@ -37,7 +34,6 @@ class TestStencil1D(unittest.TestCase):
 
         s = ForwardStencil1D(1, 1, 2)
         assert_array_almost_equal([-1.5, 2., -0.5], s.coefs)
-
 
     def test_forwardstencil1d(self):
         s = BackwardStencil1D(2, 1, 2)
@@ -50,7 +46,6 @@ class TestStencil1D(unittest.TestCase):
 class TestDiscretizedPartialDerivative(unittest.TestCase):
 
     def test_disc_part_deriv_1d(self):
-
         grid = EquidistantGrid((0, 1, 101))
         x = grid.coords[0]
         f = np.sin(x)
@@ -62,9 +57,7 @@ class TestDiscretizedPartialDerivative(unittest.TestCase):
         assert_array_almost_equal(np.cos(x[-1:]), df_dx[-1:], decimal=4)
         assert_array_almost_equal(np.cos(x[1:-1]), df_dx[1:-1], decimal=4)
 
-
     def test_disc_part_deriv_1d_acc4(self):
-
         grid = EquidistantGrid((0, 1, 101))
         x = grid.coords[0]
         f = np.sin(x)
@@ -76,74 +69,63 @@ class TestDiscretizedPartialDerivative(unittest.TestCase):
         assert_array_almost_equal(np.cos(x[-1:]), df_dx[-1:], decimal=6)
         assert_array_almost_equal(np.cos(x[1:-1]), df_dx[1:-1], decimal=6)
 
-
     def test_disc_part_deriv_2d_pure(self):
         grid = EquidistantGrid((0, 1, 101), (0, 1, 101))
         X, Y = np.meshgrid(*grid.coords, indexing='ij')
 
-        f = np.sin(X)*np.sin(Y)
+        f = np.sin(X) * np.sin(Y)
         pd = PartialDerivative({1: 2})
         d2_dy2 = DiscretizedPartialDerivative(pd, grid, acc=4)
         d2f_dy2 = d2_dy2.apply(f)
 
-        assert_array_almost_equal(-np.sin(X)*np.sin(Y), d2f_dy2)
-
+        assert_array_almost_equal(-np.sin(X) * np.sin(Y), d2f_dy2)
 
     def test_disc_part_deriv_2d_mixed(self):
         grid = EquidistantGrid((0, 1, 101), (0, 1, 101))
         X, Y = np.meshgrid(*grid.coords, indexing='ij')
 
-        f = np.sin(X)*np.sin(Y)
+        f = np.sin(X) * np.sin(Y)
         pd = PartialDerivative({0: 1, 1: 1})
         d2_dxdy = DiscretizedPartialDerivative(pd, grid, acc=4)
         d2f_dxdy = d2_dxdy.apply(f)
 
-        assert_array_almost_equal(np.cos(X)*np.cos(Y), d2f_dxdy)
+        assert_array_almost_equal(np.cos(X) * np.cos(Y), d2f_dxdy)
 
-
-class TestDiscretizedDifferentialOperator(unittest.TestCase):
-
-    def test_disc_diffoper_laplace_2d(self):
+    def test_disc_part_mul_discretize(self):
         grid = EquidistantGrid((0, 1, 101), (0, 1, 101))
         X, Y = np.meshgrid(*grid.coords, indexing='ij')
 
-        f = X**3 + Y**3
+        f = np.sin(X) * np.sin(Y)
+        d_dx = PartialDerivative({0: 1})
 
-        diff_op = DifferentialOperator((1, {0: 2}), (1, {1: 2}))
+        D = 2 * d_dx
 
-        discrete = DiscretizedDifferentialOperator(diff_op, grid, acc=4)
-        actual = discrete.apply(f)
+        D_discrete = discretized(D, grid, acc=4)
+        actual = D_discrete.apply(f)
+        assert_array_almost_equal(2*np.cos(X)*np.sin(Y), actual)
 
-        expected = 6 * X + 6 * Y
-        assert_array_almost_equal(expected, actual)
-
-
-    def test_disc_diffoper_quasi_laplace_2d(self):
+    def test_disc_part_deriv_2d_mixed_with_mul(self):
         grid = EquidistantGrid((0, 1, 101), (0, 1, 101))
         X, Y = np.meshgrid(*grid.coords, indexing='ij')
 
-        f = X**3 + Y**3
+        f = np.sin(X) * np.sin(Y)
+        d_dx = PartialDerivative({0: 1})
+        d_dy = PartialDerivative({1: 1})
 
-        diff_op = DifferentialOperator((2, {0: 2}), (3, {1: 2}))
+        D = discretized(d_dx * 2 * d_dy, grid, acc=4)
+        actual = D.apply(f)
 
-        discrete = DiscretizedDifferentialOperator(diff_op, grid, acc=4)
-        actual = discrete.apply(f)
+        assert_array_almost_equal(2*np.cos(X) * np.cos(Y), actual)
 
-        expected = 12 * X + 18 * Y
-        assert_array_almost_equal(expected, actual)
-
-
-    def test_disc_diffoper_quasi_laplace_2d_variable_coefs(self):
+    def test_disc_part_laplace_2d(self):
         grid = EquidistantGrid((0, 1, 101), (0, 1, 101))
         X, Y = np.meshgrid(*grid.coords, indexing='ij')
 
-        f = X**3 + Y**3
+        f = X**4 + Y**4
 
-        diff_op = DifferentialOperator((X, {0: 2}), (X*Y, {1: 2}))
+        laplace = PartialDerivative({0: 2}) + PartialDerivative({1: 2})
+        laplace = discretized(laplace, grid, acc=4)
+        actual = laplace.apply(f)
 
-        discrete = DiscretizedDifferentialOperator(diff_op, grid, acc=4)
-        actual = discrete.apply(f)
-
-        expected = 6*X**2 + 6*X*Y**2
-        assert_array_almost_equal(expected, actual)
+        assert_array_almost_equal(12*X**2 + 12*Y**2, actual)
 

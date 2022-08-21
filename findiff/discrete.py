@@ -1,6 +1,10 @@
 import math
+from copy import deepcopy
 
 import numpy as np
+
+from findiff.continuous import PartialDerivative
+from findiff.arithmetic import Operation, Node
 
 
 class Stencil1D:
@@ -69,7 +73,6 @@ class BackwardStencil1D(Stencil1D):
 
 
 class StencilSet1D:
-
     SCHEME_CENTRAL = 'central'
     SCHEME_FORWARD = 'forward'
     SCHEME_BACKWARD = 'backward'
@@ -92,7 +95,7 @@ class StencilSet1D:
         return abs(min(offs)), max(offs)
 
 
-class DiscretizedPartialDerivative:
+class DiscretizedPartialDerivative(Node):
 
     def __init__(self, partial, grid, acc=2):
         self.partial = partial
@@ -140,24 +143,6 @@ class DiscretizedPartialDerivative:
         return res
 
 
-class DiscretizedDifferentialOperator:
-
-    def __init__(self, diff_op, grid, acc=2):
-        self.acc = acc
-        self.coefs = []
-        self.partials = []
-
-        for c, pd in diff_op.terms():
-            self.coefs.append(c)
-            self.partials.append(DiscretizedPartialDerivative(pd, grid, acc))
-
-    def apply(self, arr):
-        res = np.zeros_like(arr)
-        for c, pd in zip(self.coefs, self.partials):
-            res += c * pd.apply(arr)
-        return res
-
-
 class EquidistantGrid:
 
     def __init__(self, *args):
@@ -169,3 +154,15 @@ class EquidistantGrid:
 
     def spacing(self, axis):
         return self.spacings[axis]
+
+
+def discretized(expr, grid, acc):
+    if isinstance(expr, Operation):
+        expr = deepcopy(expr)
+        expr.replace(
+            lambda p: type(p) == PartialDerivative,
+            lambda p: DiscretizedPartialDerivative(p, grid, acc)
+        )
+        return expr
+    elif isinstance(expr, PartialDerivative):
+        return DiscretizedPartialDerivative(expr, grid, acc)

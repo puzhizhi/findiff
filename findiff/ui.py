@@ -1,7 +1,7 @@
 import numpy as np
 
-from findiff.continuous import PartialDerivative, DifferentialOperator
-from findiff.discrete import DiscretizedDifferentialOperator, EquidistantGrid
+from findiff.continuous import PartialDerivative
+from findiff.discrete import EquidistantGrid, discretized
 
 
 class Diff:
@@ -14,7 +14,7 @@ class Diff:
         elif len(args) == 1:
             axis, degree = args[0], 1
 
-        self.exact = DifferentialOperator((1, {axis: degree}))
+        self.exact = PartialDerivative(({axis: degree}))
         self.discrete = None
 
     def __call__(self, f, **kwargs):
@@ -29,5 +29,5 @@ class Diff:
         else:
             acc = 2
 
-        self.discrete = DiscretizedDifferentialOperator(self.exact, grid, acc)
+        self.discrete = discretized(self.exact, grid, acc)
         return self.discrete.apply(f)

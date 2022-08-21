@@ -1,7 +1,12 @@
 """This module is for the v1.* API"""
+import logging
+
+from findiff.arithmetic import Mul, Node, Add
+
+logger = logging.getLogger(__name__)
 
 
-class PartialDerivative:
+class PartialDerivative(Node):
 
     def __init__(self, degrees):
         """ Representation of a (possibly mixed) partial derivative.
@@ -23,9 +28,15 @@ class PartialDerivative:
     def axes(self):
         return sorted(self.degrees.keys())
 
+    def __add__(self, other):
+        return Add(self, other)
+
+    def __radd__(self, other):
+        return Add(other, self)
+
     def __mul__(self, other):
-        if not isinstance(other, PartialDerivative):
-            raise TypeError('PartialDerivative can only multiply other PartialDerivative.')
+        if type(other) != PartialDerivative:
+            return Mul(self, other)
         new_degrees = dict(self.degrees)
         for axis, degree in other.degrees.items():
             if axis in new_degrees:
@@ -33,6 +44,16 @@ class PartialDerivative:
             else:
                 new_degrees[axis] = degree
         return PartialDerivative(new_degrees)
+
+    def __rmul__(self, other):
+        assert type(other) != PartialDerivative
+        return Mul(other, self)
+
+    def __repr__(self):
+        return str(self.degrees)
+
+    def __str__(self):
+        return str(self.degrees)
 
     def __pow__(self, power):
         assert int(power) == power and power > 0
@@ -57,55 +78,7 @@ class PartialDerivative:
                 raise ValueError('Degree must be positive integer')
 
 
-class DifferentialOperator:
-    """Represents a linear combination of partial derivatives."""
-
-    def __init__(self, *args):
-        partials_dict = {}
-        for arg in args:
-            coef, degrees = arg
-            pd = PartialDerivative(degrees)
-            if pd not in partials_dict:
-                partials_dict[pd] = coef
-            else:
-                partials_dict[pd] += coef
-
-        assert isinstance(partials_dict, dict)
-        self._the_sum = partials_dict
-
-    def terms(self):
-        return [(c, pd) for pd, c in self._the_sum.items()]
-
-    def coefficient(self, partial):
-        if isinstance(partial, PartialDerivative):
-            return self._the_sum.get(partial, 0)
-        return self._the_sum.get(PartialDerivative(partial), 0)
-
-    def __add__(self, other):
-        # Also consider case when other is a number (const * Identity)
-        assert isinstance(other, DifferentialOperator)
-        new_partials = dict(self._the_sum)
-        for pd, c in other._the_sum.items():
-            if pd in new_partials:
-                new_partials[pd] += c
-            else:
-                new_partials[pd] = c
-        return DifferentialOperator(
-            *tuple((c, pd.degrees) for pd, c in new_partials.items())
-        )
-
-    def __mul__(self, other):
-        if type(other) != PartialDerivative:
-            raise TypeError('Multiplication of DifferentialOperator only with PartialDerivative!')
-        new_partials = dict()
-        for pd, c in self._the_sum.items():
-            new_partials[pd * PartialDerivative(other.degrees)] = c
-        return DifferentialOperator(
-            *tuple((c, pd.degrees) for pd, c in new_partials.items())
-        )
-
-
-class Coordinate:
+class Coordinate(Node):
 
     def __init__(self, axis):
         assert axis >= 0 and axis == int(axis)
