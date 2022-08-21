@@ -81,7 +81,7 @@ class StencilSet(object):
 
         idx0 = np.array(idx0)
         du = 0.
-        for o, c in stl.data():
+        for o, c in stl.items():
             idx = idx0 + o
             du += c * u[tuple(idx)]
 
@@ -498,3 +498,101 @@ class Stencil:
             if not is_valid_add(expr):
                 raise ValueError(err_msg)
 
+
+class StencilStore:
+
+    stencils = {}
+
+    @classmethod
+    def add(cls, stencil):
+        key = (type(stencil), stencil.deriv, stencil.acc, stencil.spacing)
+        cls.stencils[key] = stencil
+
+    @classmethod
+    def get_stencil(cls, stencil_type, **kwargs):
+        deriv, acc, dx = kwargs['deriv'], kwargs['acc'], kwargs['spacing']
+        key = (stencil_type, deriv, acc, dx)
+        if key not in cls.stencils:
+            if (stencil_type == SymmetricStencil1D
+                    or stencil_type == ForwardStencil1D
+                    or stencil_type == BackwardStencil1D):
+                stencil = stencil_type(deriv, dx, acc)
+                cls.add(stencil)
+            else:
+                raise NotImplementedError()
+        return cls.stencils[key]
+
+
+class Stencil1D:
+
+    def __init__(self, deriv, offsets, dx):
+        self.offsets = offsets
+        self.deriv = deriv
+        self.spacing = dx
+
+        A = self._build_matrix()
+        rhs = self._build_rhs()
+        self.coefs = np.linalg.solve(A, rhs) * (self.spacing ** (-self.deriv))
+
+    def __str__(self):
+        return repr(self)
+
+    def __repr__(self):
+        return str(self.data())
+
+    @property
+    def data(self):
+        return {off: coef for off, coef in zip(self.offsets, self.coefs)}
+
+    def get_boundary_size(self):
+        return max(np.abs(self.offsets))
+
+    def get_num_points_side(self):
+        offs = self.offsets
+        return abs(min(filter(lambda off: off <= 0, offs))), max(filter(lambda off: off >= 0, offs))
+
+    def _build_matrix(self):
+        """Constructs the equation system matrix for the finite difference coefficients"""
+        A = [([1 for _ in self.offsets])]
+        for i in range(1, len(self.offsets)):
+            A.append([j ** i for j in self.offsets])
+        return np.array(A, dtype='float')
+
+    def _build_rhs(self):
+        """The right hand side of the equation system matrix"""
+        b = [0 for _ in self.offsets]
+        b[self.deriv] = math.factorial(self.deriv)
+        return np.array(b, dtype='float')
+
+
+class SymmetricStencil1D(Stencil1D):
+
+    def __init__(self, deriv, dx, acc=2):
+        assert acc % 2 == 0
+        self.acc = acc
+        num_central = 2 * math.floor((deriv + 1) / 2) - 1 + acc
+        p = num_central // 2
+        offsets = np.array(list(range(-p, p + 1)))
+        super(SymmetricStencil1D, self).__init__(deriv, offsets, dx)
+
+
+class ForwardStencil1D(Stencil1D):
+    def __init__(self, deriv, dx, acc=2):
+        assert acc % 2 == 0
+        self.acc = acc
+        num_coefs = 2 * math.floor((deriv + 1) / 2) - 1 + acc
+        if deriv % 2 == 0:
+            num_coefs = num_coefs + 1
+        offsets = np.array(list(range(0, num_coefs)))
+        super(ForwardStencil1D, self).__init__(deriv, offsets, dx)
+
+
+class BackwardStencil1D(Stencil1D):
+    def __init__(self, deriv, dx, acc=2):
+        assert acc % 2 == 0
+        self.acc = acc
+        num_coefs = 2 * math.floor((deriv + 1) / 2) - 1 + acc
+        if deriv % 2 == 0:
+            num_coefs = num_coefs + 1
+        offsets = -np.array(list(range(0, num_coefs)))
+        super(BackwardStencil1D, self).__init__(deriv, offsets[::-1], dx)

@@ -4,7 +4,41 @@ import numpy as np
 
 from numpy.testing import assert_array_almost_equal
 
-from findiff.ui import Diff
+from findiff.api import Diff, FinDiff
+
+
+class TestFinDiff(unittest.TestCase):
+
+    def test_single_first_deriv_1d(self):
+        x = np.linspace(0, 1, 101)
+        dx = x[1] - x[0]
+        f = x**3
+
+        d_dx = FinDiff(0, dx, acc=4)
+        actual = d_dx(f)
+
+        assert_array_almost_equal(3*x**2, actual)
+
+    def test_single_second_deriv_1d(self):
+        x = np.linspace(0, 1, 101)
+        dx = x[1] - x[0]
+        f = x**3
+
+        d_dx = FinDiff(0, dx, 2, acc=4)
+        actual = d_dx(f)
+
+        assert_array_almost_equal(6*x, actual)
+
+    def test_single_mixed_deriv_2d(self):
+        x = y = np.linspace(0, 1, 101)
+        dx = dy = x[1] - x[0]
+        X, Y = np.meshgrid(x, y, indexing='ij')
+        f = X**2*Y**2
+
+        d2_dxdy = FinDiff((0, dx, 2), (1, dy, 2), acc=4)
+        actual = d2_dxdy(f)
+
+        assert_array_almost_equal(4, actual, decimal=5)
 
 
 class TestDiff(unittest.TestCase):

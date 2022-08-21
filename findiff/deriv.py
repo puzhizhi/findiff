@@ -1,9 +1,7 @@
-"""This module is for the v1.* API"""
-import logging
+import numpy as np
 
-from findiff.arithmetic import Mul, Node, Add
-
-logger = logging.getLogger(__name__)
+from findiff.arithmetic import Node, Mul, Add
+from findiff.stencils import StencilStore, SymmetricStencil1D, ForwardStencil1D, BackwardStencil1D
 
 
 class PartialDerivative(Node):
@@ -77,13 +75,42 @@ class PartialDerivative(Node):
             if not isinstance(degree, int) or degree <= 0:
                 raise ValueError('Degree must be positive integer')
 
+    def apply(self, arr, grid, acc):
 
-class Coordinate(Node):
+        for axis in self.axes:
+            res = np.zeros_like(arr)
+            deriv = self.degree(axis)
+            spacing = grid.spacing(axis)
+            stencil = StencilStore.get_stencil(SymmetricStencil1D, deriv=deriv, acc=acc, spacing=spacing)
+            left, right = stencil.get_num_points_side()
+            right = arr.shape[axis] - right
+            res = self._apply_axis(res, arr, axis,
+                                   stencil.data,
+                                   left, right)
+            bndry_size = stencil.get_boundary_size()
 
-    def __init__(self, axis):
-        assert axis >= 0 and axis == int(axis)
-        self.name = 'x_{%d}' % axis
-        self.axis = axis
+            stencil = StencilStore.get_stencil(ForwardStencil1D, deriv=deriv, acc=acc, spacing=spacing)
+            res = self._apply_axis(res, arr, axis,
+                                   stencil.data,
+                                   0, bndry_size)
 
-    def __eq__(self, other):
-        return self.axis == other.axis
+            stencil = StencilStore.get_stencil(BackwardStencil1D, deriv=deriv, acc=acc, spacing=spacing)
+            res = self._apply_axis(res, arr, axis,
+                                   stencil.data,
+                                   arr.shape[axis] - bndry_size, arr.shape[axis])
+            arr = res
+
+        return res
+
+    def _apply_axis(self, res, arr, axis, stencil_data, left, right):
+        base_sl = slice(left, right)
+        multi_base_sl = [slice(None, None)] * arr.ndim
+        multi_base_sl[axis] = base_sl
+        for off, coef in stencil_data.items():
+            off_sl = slice(left + off, right + off)
+            multi_off_sl = [slice(None, None)] * arr.ndim
+            multi_off_sl[axis] = off_sl
+            res[tuple(multi_base_sl)] += coef * arr[tuple(multi_off_sl)]
+        return res
+
+

@@ -2,10 +2,11 @@ import unittest
 from itertools import product
 
 import numpy as np
+from numpy.testing import assert_array_almost_equal
 from sympy import Rational, symbols, Symbol, simplify, expand
 
 from findiff import Identity, FinDiff
-from findiff.stencils import Stencil
+from findiff.stencils import Stencil, Stencil1D, SymmetricStencil1D, ForwardStencil1D, BackwardStencil1D
 from findiff.symbolics.deriv import DerivativeSymbol
 
 
@@ -37,7 +38,7 @@ class TestStencilOperations(unittest.TestCase):
 
         self.assertEqual(4, stencil.accuracy)
         self.assertEqual(len(expected), len(stencil.values))
-        for off, coeff in stencil.values.data():
+        for off, coeff in stencil.values.items():
             self.assertAlmostEqual(coeff, expected[off])
 
     def test_solve_laplace_2d_with_5_points_times_2(self):
@@ -64,7 +65,7 @@ class TestStencilOperations(unittest.TestCase):
         }
 
         self.assertEqual(len(expected), len(stencil.values))
-        for off, coeff in stencil.values.data():
+        for off, coeff in stencil.values.items():
             self.assertAlmostEqual(coeff, expected[off])
         self.assertEqual(2, stencil.accuracy)
 
@@ -316,3 +317,32 @@ class TestStencilOperations(unittest.TestCase):
         dt = Symbol(r'\Delta t', real=True)
         dx = Symbol(r'\Delta x', real=True)
         d2_dx2 = Stencil(offsets=[(0, 1), (0, 0), (0, -1)], partials=D(1, 2), spacings=(dt, dx), symbolic=True)
+
+
+class TestStencil1D(unittest.TestCase):
+
+    def test_stencil1d(self):
+        s = Stencil1D(2, [-1, 0, 1], 1)
+        print(repr(s))
+
+    def test_stencil1d(self):
+        s = Stencil1D(2, [-1, 0, 1], 1)
+        assert {-1: 1, 0: -2, 1: 1} == s.data
+
+    def test_symmetricstencil1d(self):
+        s = SymmetricStencil1D(2, 1, 2)
+        assert {-1: 1, 0: -2, 1: 1} == s.data
+
+    def test_forwardstencil1d(self):
+        s = ForwardStencil1D(2, 1, 2)
+        assert_array_almost_equal([2, -5, 4, -1], s.coefs)
+
+        s = ForwardStencil1D(1, 1, 2)
+        assert_array_almost_equal([-1.5, 2., -0.5], s.coefs)
+
+    def test_forwardstencil1d(self):
+        s = BackwardStencil1D(2, 1, 2)
+        assert_array_almost_equal([-1, 4, -5, 2], s.coefs)
+
+        s = BackwardStencil1D(1, 1, 2)
+        assert_array_almost_equal([0.5, -2, 1.5], s.coefs)
