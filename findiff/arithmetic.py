@@ -64,6 +64,9 @@ class Operation(Node):
     def _is_numberlike(self, arg):
         return not isinstance(arg, Node)
 
+    def __call__(self, target, *args, **kwargs):
+        return self.apply(target, *args, **kwargs)
+
 
 class Mul(Operation):
 

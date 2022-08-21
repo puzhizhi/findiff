@@ -1,10 +1,11 @@
 import numpy as np
 
+from findiff.arithmetic import Node
 from findiff.deriv import PartialDerivative
 from findiff.grids import EquidistantGrid
 
 
-class FinDiff:
+class FinDiff(PartialDerivative):
 
     def __init__(self, *args, **kwargs):
 
@@ -14,12 +15,15 @@ class FinDiff:
             self.acc = kwargs['acc']
 
         degrees, spacings = self._parse_args(args)
+        super(FinDiff, self).__init__(degrees)
 
-        self.partial = PartialDerivative(degrees)
         self.grid = EquidistantGrid.from_spacings(max(degrees.keys()) + 1, spacings)
 
     def __call__(self, f, acc=None):
-        return self.partial.apply(f, self.grid, self.acc)
+        return super().apply(f, self.grid, self.acc)
+
+    def apply(self, f):
+        return super().apply(f, self.grid, self.acc)
 
     def _parse_args(self, args):
         assert len(args) > 0
