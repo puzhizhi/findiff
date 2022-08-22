@@ -43,12 +43,16 @@ class Coordinate(Node):
     def __eq__(self, other):
         return self.axis == other.axis
 
+    def apply(self, f, grid, *args, **kwargs):
+        return grid.meshed_coords[self.axis] * f
+
 
 class EquidistantGrid:
 
     def __init__(self, *args):
         self.ndims = len(args)
         self.coords = [np.linspace(*arg) for arg in args]
+        self.meshed_coords = np.meshgrid(*self.coords, indexing='ij')
         self.spacings = np.array(
             [self.coords[axis][1] - self.coords[axis][0] for axis in range(len(self.coords))]
         )

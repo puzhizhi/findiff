@@ -47,6 +47,9 @@ class PartialDerivative(Node):
         assert type(other) != PartialDerivative
         return Mul(other, self)
 
+    def __neg__(self):
+        return Mul(-1, self)
+
     def __repr__(self):
         return str(self.degrees)
 
@@ -81,6 +84,7 @@ class PartialDerivative(Node):
             res = np.zeros_like(arr)
             deriv = self.degree(axis)
             spacing = grid.spacing(axis)
+
             stencil = StencilStore.get_stencil(SymmetricStencil1D, deriv=deriv, acc=acc, spacing=spacing)
             left, right = stencil.get_num_points_side()
             right = arr.shape[axis] - right

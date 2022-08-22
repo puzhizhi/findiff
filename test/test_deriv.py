@@ -5,7 +5,7 @@ import pytest
 from numpy.testing import assert_array_almost_equal
 
 from findiff.deriv import PartialDerivative
-from findiff.grids import EquidistantGrid
+from findiff.grids import EquidistantGrid, Coordinate
 
 
 class TestsPartialDerivative(unittest.TestCase):
@@ -152,3 +152,74 @@ class TestsPartialDerivative(unittest.TestCase):
 
         assert_array_almost_equal(12*X**2 + 12*Y**2, actual)
 
+    def test_disc_part_with_coordinate(self):
+
+        grid = EquidistantGrid((0, 1, 101))
+        x = grid.coords[0]
+        f = x**4
+
+        deriv = Coordinate(0) * PartialDerivative({0: 2})
+
+        actual = deriv.apply(f, grid, acc=4)
+        assert_array_almost_equal(12*x**3, actual)
+
+    def test_disc_part_with_coordinates_2d(self):
+
+        grid = EquidistantGrid((0, 1, 101), (0, 1, 101))
+        X, Y = grid.meshed_coords
+        f = X**4 + Y**4
+
+        deriv = Coordinate(0) * PartialDerivative({0: 2}) + Coordinate(1) * PartialDerivative({1: 2})
+
+        actual = deriv.apply(f, grid, acc=4)
+        assert_array_almost_equal(12*X**3 + 12*Y**3, actual)
+
+    def test_disc_part_with_coordinates_chaining(self):
+
+        grid = EquidistantGrid((0, 1, 101), (0, 1, 101))
+        X, Y = grid.meshed_coords
+        f = X**4 + Y**4
+
+        deriv1 = Coordinate(0) * PartialDerivative({0: 2}) + Coordinate(1) * PartialDerivative({1: 2})
+        deriv2 = Coordinate(0) * PartialDerivative({0: 2}) + Coordinate(1) * PartialDerivative({1: 2})
+
+        deriv = deriv1 * deriv2
+
+        actual = deriv.apply(f, grid, acc=4)
+        assert_array_almost_equal(72*X**2 + 72*Y**2, actual, decimal=4)
+
+    def test_disc_part_with_coordinates_chaining_minus(self):
+
+        grid = EquidistantGrid((0, 1, 101), (0, 1, 101))
+        X, Y = grid.meshed_coords
+        f = X**4 + Y**4
+
+        deriv1 = Coordinate(0) * PartialDerivative({0: 2}) - Coordinate(1) * PartialDerivative({1: 2})
+        deriv2 = Coordinate(0) * PartialDerivative({0: 2}) + Coordinate(1) * PartialDerivative({1: 2})
+
+        deriv = deriv1 * deriv2
+
+        actual = deriv.apply(f, grid, acc=4)
+        assert_array_almost_equal(72*X**2 - 72*Y**2, actual, decimal=4)
+
+    def test_disc_part_with_unary_minus(self):
+
+        grid = EquidistantGrid((0, 1, 101), (0, 1, 101))
+        X, Y = grid.meshed_coords
+        f = X**4 + Y**4
+
+        deriv = - PartialDerivative({0: 1})
+
+        actual = deriv.apply(f, grid, acc=4)
+        assert_array_almost_equal(-4*X**3, actual, decimal=4)
+
+    def test_disc_part_minus_laplace(self):
+
+        grid = EquidistantGrid((0, 1, 101), (0, 1, 101))
+        X, Y = grid.meshed_coords
+        f = X**4 + Y**4
+
+        laplace = PartialDerivative({0: 2}) + PartialDerivative({1: 2})
+
+        actual = (-laplace).apply(f, grid, acc=4)
+        assert_array_almost_equal(-12*X**2 - 12*Y**2, actual, decimal=4)

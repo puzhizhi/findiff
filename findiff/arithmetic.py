@@ -37,6 +37,27 @@ class Operation(Node):
     def __str__(self):
         return '%s(%s, %s)' % (self.__class__.__name__, self.left, self.right)
 
+    def __add__(self, other):
+        return Add(self, other)
+
+    def __radd__(self, other):
+        return Add(other, self)
+
+    def __mul__(self, other):
+        return Mul(self, other)
+
+    def __rmul__(self, other):
+        return Mul(other, self)
+
+    def __sub__(self, other):
+        return Add(self, Mul(-1, other))
+
+    def __rsub__(self, other):
+        return Add(other, Mul(-1, self))
+
+    def __neg__(self):
+        return Mul(-1, self)
+
     def contains_type(self, typ):
         for side in [self.left, self.right]:
             if isinstance(side, Operation):

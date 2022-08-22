@@ -4,8 +4,7 @@ from itertools import product
 
 import numpy as np
 import sympy
-from sympy import Symbol, Matrix, IndexedBase, Add, Mul, Expr, Wild
-from sympy.core.numbers import NegativeOne
+from sympy import Symbol, Matrix, IndexedBase, Add, Mul, Expr
 
 from .symbolics.deriv import DerivativeSymbol
 from .utils import to_long_index, to_index_tuple
