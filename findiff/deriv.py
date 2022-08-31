@@ -1,13 +1,13 @@
 import numpy as np
 import scipy
 
-from findiff.arithmetic import Node, Mul, Add, Numberlike, Operation
+from findiff.arithmetic import Combinable, Mul, Add, Numberlike, Operation
 from findiff.grids import Coordinate
 from findiff.stencils import StencilStore, SymmetricStencil1D, ForwardStencil1D, BackwardStencil1D
 from findiff.utils import to_long_index, long_indices_as_ndarray
 
 
-class PartialDerivative(Node):
+class PartialDerivative(Combinable):
 
     def __init__(self, degrees):
         """ Representation of a (possibly mixed) partial derivative.

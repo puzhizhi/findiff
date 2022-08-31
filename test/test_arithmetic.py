@@ -41,32 +41,3 @@ class TestMul(unittest.TestCase):
         assert actual.left.left == pd0
         assert actual.left.right.value == 2
         assert actual.right == pd1
-
-    def test_replace_partial(self):
-        pd0 = PartialDerivative({0: 1})
-        pd1 = PartialDerivative({1: 1})
-        mul = pd0 * 2 * pd1
-
-        class DummyPartial:
-            pass
-
-        tester = lambda item: type(item) == PartialDerivative
-        replacer = lambda item: DummyPartial()
-
-        mul.replace(tester, replacer)
-        assert type(mul.left.left) == DummyPartial
-        assert mul.left.right.value == 2
-        assert type(mul.right) == DummyPartial
-
-    def test_replace_coordinate(self):
-        pd0 = PartialDerivative({0: 1})
-        pd1 = PartialDerivative({1: 1})
-        mul = pd0 * Coordinate(0) * pd1
-
-        tester = lambda item: type(item) == Coordinate and item.axis == 0
-        replacer = lambda item: 7
-
-        mul.replace(tester, replacer)
-        assert type(mul.left.left) == PartialDerivative
-        assert mul.left.right == 7
-        assert type(mul.right) == PartialDerivative

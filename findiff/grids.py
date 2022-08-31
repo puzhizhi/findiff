@@ -1,6 +1,6 @@
 import numpy as np
 
-from findiff.arithmetic import Node
+from findiff.arithmetic import Combinable
 
 
 class Grid(object):
@@ -33,10 +33,11 @@ class UniformGrid(Grid):
         return self.spac[axis]
 
 
-class Coordinate(Node):
+class Coordinate(Combinable):
 
     def __init__(self, axis):
         assert axis >= 0 and axis == int(axis)
+        super(Coordinate, self).__init__()
         self.name = 'x_{%d}' % axis
         self.axis = axis
 
@@ -72,5 +73,16 @@ class EquidistantGrid:
                 h = spacings[axis]
                 args.append((0, h * 20, 21))
             else:
-                args.append((0, 1, 11))
+                args.append((0, 10, 11))
+        return EquidistantGrid(*args)
+
+    @classmethod
+    def from_shape_and_spacings(cls, shape, spacings):
+        args = []
+        for axis in range(len(shape)):
+            if axis in spacings:
+                h = spacings[axis]
+                args.append((0, h * (shape[axis]-1), shape[axis]))
+            else:
+                args.append((0, shape[axis]-1, shape[axis]))
         return EquidistantGrid(*args)

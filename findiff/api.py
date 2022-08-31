@@ -1,29 +1,50 @@
 import numpy as np
 
-from findiff.arithmetic import Node
-from findiff.deriv import PartialDerivative
+from findiff.arithmetic import Combinable, Numberlike, Add, Mul, Operation
+from findiff.deriv import PartialDerivative, matrix_repr
 from findiff.grids import EquidistantGrid
+from findiff.stencils import StencilSet
 
 
-class FinDiff(PartialDerivative):
+class FinDiff(Combinable):
 
     def __init__(self, *args, **kwargs):
 
+        super(FinDiff, self).__init__()
+        self.add_handler = DirtyAdd
+        self.mul_handler = DirtyMul
         self.acc = 2
 
         if 'acc' in kwargs:
             self.acc = kwargs['acc']
 
         degrees, spacings = self._parse_args(args)
-        super(FinDiff, self).__init__(degrees)
+        self.partial = PartialDerivative(degrees)
 
+        # The old FinDiff API does not fully specify the grid.
+        # So use a dummy-grid for all non-specified values:
         self.grid = EquidistantGrid.from_spacings(max(degrees.keys()) + 1, spacings)
+        self._user_specified_spacings = spacings
 
     def __call__(self, f, acc=None):
-        return super().apply(f, self.grid, self.acc)
+        self.acc = acc or self.acc
+        return self.apply(f)
 
     def apply(self, f):
-        return super().apply(f, self.grid, self.acc)
+        return self.partial.apply(f, self.grid, self.acc)
+
+    def matrix(self, shape, acc=None):
+        acc = acc or self.acc
+        if shape != self.grid.shape:
+            # The old FinDiff API does not fully specify the grid.
+            # The constructor tentatively constructed a dummy grid. Now
+            # update this information. In particular, we now know the exact
+            # number of space dimensions:
+            self.grid = EquidistantGrid.from_shape_and_spacings(shape, self._user_specified_spacings)
+        return self.partial.matrix_repr(self.grid, acc)
+
+    def stencil(self, shape):
+        return StencilSet(self, shape)
 
     def _parse_args(self, args):
         assert len(args) > 0
@@ -79,3 +100,59 @@ class Diff:
             acc = 2
 
         return self.partial.apply(f, grid, acc)
+
+
+
+class DirtyMixin:
+
+    def __init__(self):
+        self.add_handler = DirtyAdd
+        self.mul_handler = DirtyMul
+
+    def matrix(self, shape):
+        if isinstance(self, Operation):
+            left = self.left.matrix(shape)
+            right = self.right.matrix(shape)
+            return self.operation(left, right)
+        elif not isinstance(self, FinDiff):
+            grid = EquidistantGrid.from_shape_and_spacings(shape, {})
+            return matrix_repr(self, grid, 2)
+        return self.matrix(shape)
+
+    def stencil(self, shape):
+        return StencilSet(self, shape)
+
+
+class DirtyNumberlike(DirtyMixin, Numberlike):
+
+    def __init__(self, value):
+        Numberlike.__init__(self, value)
+        DirtyMixin.__init__(self)
+
+class Coef(DirtyNumberlike):
+    def __init__(self, value):
+        super(Coef, self).__init__(value)
+
+class Identity(DirtyNumberlike):
+
+    def __init__(self):
+        super(Identity, self).__init__(1)
+
+    def __call__(self, f, *args, **kwargs):
+        return f
+
+
+class DirtyAdd(DirtyMixin, Add):
+    wrapper_class = DirtyNumberlike
+
+    def __init__(self, *args, **kwargs):
+        Add.__init__(self, *args, **kwargs)
+        DirtyMixin.__init__(self)
+
+
+class DirtyMul(DirtyMixin, Mul):
+    wrapper_class = DirtyNumberlike
+
+    def __init__(self, *args, **kwargs):
+        Mul.__init__(self, *args, **kwargs)
+        DirtyMixin.__init__(self)

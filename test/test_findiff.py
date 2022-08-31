@@ -4,14 +4,16 @@ sys.path.insert(1, '..')
 import unittest
 import numpy as np
 from numpy.testing import assert_array_almost_equal, assert_array_equal
-from findiff.operators import Coef, Identity
-#from findiff.api import FinDiff
-from findiff.operators import FinDiff
+#from findiff.operators import Identity, Coef
+#from findiff.operators import FinDiff
+
+from findiff.api import FinDiff, Coef, Identity
+
 
 
 class FinDiffTest(unittest.TestCase):
 
-    def test_partial_diff_1d(self):
+    def test_partial_diff_1d_specify_acc_on_call(self):
         nx = 11
         x = np.linspace(0, 1, nx)
         u = x**3
@@ -113,6 +115,14 @@ class FinDiffTest(unittest.TestCase):
 
         assert_array_almost_equal(f2, f)
         assert_array_almost_equal(f2, 6 * (X + Y + Z))
+
+    def test_partial_with_variable_coef(self):
+        (X, Y), _, h = grid(2, 50, 0, 1)
+
+        u = X ** 2 + Y ** 2
+        d = Coef(X) * FinDiff(0, h[0], 1)
+        actual = d(u)
+        assert_array_almost_equal(actual, 2*X**2)
 
     def test_identity(self):
 

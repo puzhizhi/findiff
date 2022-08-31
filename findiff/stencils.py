@@ -15,7 +15,7 @@ class StencilSet:
     Represent the finite difference stencils for a given differential operator.
     """
 
-    def __init__(self, diff_op, shape, old_stl=None):
+    def __init__(self, diff_op, shape):
         """
         Constructor for StencilSet objects.
 

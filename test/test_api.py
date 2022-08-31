@@ -5,6 +5,8 @@ import numpy as np
 from numpy.testing import assert_array_almost_equal
 
 from findiff.api import Diff, FinDiff
+from findiff.deriv import matrix_repr, PartialDerivative
+from findiff.grids import EquidistantGrid
 
 
 class TestFinDiff(unittest.TestCase):
@@ -39,6 +41,19 @@ class TestFinDiff(unittest.TestCase):
         actual = d2_dxdy(f)
 
         assert_array_almost_equal(4, actual, decimal=5)
+
+    def test_matrix_repr(self):
+        x = y = np.linspace(0, 1, 101)
+        dx = dy = x[1] - x[0]
+        X, Y = np.meshgrid(x, y, indexing='ij')
+        grid = EquidistantGrid((0, 1, 101), (0, 1, 101))
+
+        f = X ** 2 * Y ** 2
+
+        d2_dxdy = FinDiff((0, dx, 2), (1, dy, 2))
+        actual = d2_dxdy.matrix(f.shape)
+        expected = matrix_repr(PartialDerivative({0: 2, 1: 2}), grid, acc=2)
+        assert_array_almost_equal(actual.toarray(), expected.toarray())
 
 
 class TestDiff(unittest.TestCase):
