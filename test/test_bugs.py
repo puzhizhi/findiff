@@ -15,7 +15,7 @@ class TestOldBugs(unittest.TestCase):
             return 5 * x ** 2 - 5 * x + 10 * y ** 2 - 10 * y
 
         d_dx = FinDiff(1, 0.01)
-        self.assertRaises(ValueError, lambda ff: d_dx(ff), f)
+        self.assertRaises(TypeError, lambda ff: d_dx(ff), f)
 
     def test_matrix_representation_doesnt_work_for_order_greater_2_issue_24(self):
         x = np.zeros((10))

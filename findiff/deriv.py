@@ -1,3 +1,4 @@
+import numbers
 import numpy as np
 import scipy
 
@@ -76,12 +77,15 @@ class PartialDerivative(Combinable):
     def _validate_degrees(self, degrees):
         assert isinstance(degrees, dict)
         for axis, degree in degrees.items():
-            if not isinstance(axis, int) or axis < 0:
+            if not isinstance(axis, numbers.Integral) or axis < 0:
                 raise ValueError('Axis must be positive integer')
-            if not isinstance(degree, int) or degree <= 0:
+            if not isinstance(degree, numbers.Integral) or degree <= 0:
                 raise ValueError('Degree must be positive integer')
 
     def apply(self, arr, grid, acc):
+
+        if not isinstance(arr, np.ndarray):
+            raise TypeError('Can only apply derivative to NumPy arrays. Instead got %s.' % (arr.__class__.__name__))
 
         for axis in self.axes:
             res = np.zeros_like(arr)

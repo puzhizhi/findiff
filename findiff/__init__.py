@@ -19,7 +19,8 @@ Features:
 __version__ = '0.9.2'
 
 from .coefs import coefficients
-from .operators import FinDiff, Coef, Identity, Coefficient
+#from .operators import FinDiff, Coef, Identity, Coefficient
+from .api import FinDiff, Coef, Identity
 from .vector import Gradient, Divergence, Curl, Laplacian
 from .pde import PDE, BoundaryConditions
 from .stencils import Stencil
