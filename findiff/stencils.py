@@ -10,7 +10,7 @@ from .symbolics.deriv import DerivativeSymbol
 from .utils import to_long_index, to_index_tuple
 
 
-class StencilSet(object):
+class StencilSet:
     """
     Represent the finite difference stencils for a given differential operator.
     """
@@ -538,6 +538,10 @@ class Stencil1D:
 
     def __repr__(self):
         return str(self.data())
+
+    @property
+    def coefficients(self):
+        return self.coefs
 
     @property
     def data(self):

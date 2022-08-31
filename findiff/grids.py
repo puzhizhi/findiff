@@ -60,6 +60,10 @@ class EquidistantGrid:
     def spacing(self, axis):
         return self.spacings[axis]
 
+    @property
+    def shape(self):
+        return tuple(len(c) for c in self.coords)
+
     @classmethod
     def from_spacings(cls, ndims, spacings):
         args = []

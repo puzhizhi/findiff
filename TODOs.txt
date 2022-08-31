@@ -1,0 +1,7 @@
+- Matrix class for matrix representation, including arithmetic operations
+- After matrix: StencilSet (depends on matrix representation)
+- Non-uniform stuff
+- symbolic stuff
+- PDEs
+
+

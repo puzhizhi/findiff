@@ -1,7 +1,10 @@
 import numpy as np
+import scipy
 
-from findiff.arithmetic import Node, Mul, Add
+from findiff.arithmetic import Node, Mul, Add, Numberlike, Operation
+from findiff.grids import Coordinate
 from findiff.stencils import StencilStore, SymmetricStencil1D, ForwardStencil1D, BackwardStencil1D
+from findiff.utils import to_long_index, long_indices_as_ndarray
 
 
 class PartialDerivative(Node):
@@ -85,14 +88,18 @@ class PartialDerivative(Node):
             deriv = self.degree(axis)
             spacing = grid.spacing(axis)
 
+            # Apply symmetric stencil in the interior of the grid,
+            # wherever possible:
             stencil = StencilStore.get_stencil(SymmetricStencil1D, deriv=deriv, acc=acc, spacing=spacing)
             left, right = stencil.get_num_points_side()
             right = arr.shape[axis] - right
             res = self._apply_axis(res, arr, axis,
                                    stencil.data,
                                    left, right)
-            bndry_size = stencil.get_boundary_size()
 
+            # In the boundary of the symmetric stencil, apply
+            # one-sided stencils instead (forward/backward):
+            bndry_size = stencil.get_boundary_size()
             stencil = StencilStore.get_stencil(ForwardStencil1D, deriv=deriv, acc=acc, spacing=spacing)
             res = self._apply_axis(res, arr, axis,
                                    stencil.data,
@@ -106,6 +113,60 @@ class PartialDerivative(Node):
 
         return res
 
+    def matrix_repr(self, grid, acc):
+        """Returns the matrix representation of the partial derivative on a given grid."""
+
+        long_indices_nd = long_indices_as_ndarray(grid.shape)
+
+        mats = []
+        for axis in self.axes:
+            deriv = self.degree(axis)
+            if deriv == 0:
+                continue
+            siz = np.prod(grid.shape)
+            mat = scipy.sparse.lil_matrix((siz, siz))
+
+            center, forward, backward = [StencilStore.get_stencil(
+                stype, deriv=deriv, acc=acc,
+                spacing=grid.spacing(axis))
+                for stype in (SymmetricStencil1D, ForwardStencil1D, BackwardStencil1D)]
+
+            for stencil in (center, forward, backward):
+
+                # translate offsets of given scheme to long format
+                offsets_long = []
+                for o_1d in stencil.offsets:
+                    o_nd = np.zeros(grid.ndims)
+                    o_nd[axis] = o_1d
+                    o_long = to_long_index(o_nd, grid.shape)
+                    offsets_long.append(o_long)
+
+                if type(stencil) == SymmetricStencil1D:
+                    nside = stencil.get_boundary_size()
+                    multi_slice = [slice(None, None)] * grid.ndims
+                    multi_slice[axis] = slice(nside, -nside)
+                    Is = long_indices_nd[tuple(multi_slice)].reshape(-1)
+                elif type(stencil) == ForwardStencil1D:
+                    multi_slice = [slice(None, None)] * grid.ndims
+                    multi_slice[axis] = slice(0, nside)
+                    Is = long_indices_nd[tuple(multi_slice)].reshape(-1)
+                else:
+                    multi_slice = [slice(None, None)] * grid.ndims
+                    multi_slice[axis] = slice(-nside, None)
+                    Is = long_indices_nd[tuple(multi_slice)].reshape(-1)
+
+                for o, c in zip(offsets_long, stencil.coefficients):
+                    mat[Is, Is + o] = c
+
+            # done with the axis, convert to csr_matrix for faster arithmetic
+            mats.append(scipy.sparse.csr_matrix(mat))
+
+        # return the matrix product
+        mat = mats[0]
+        for i in range(1, len(mats)):
+            mat = mat.dot(mats[i])
+        return mat
+
     def _apply_axis(self, res, arr, axis, stencil_data, left, right):
         base_sl = slice(left, right)
         multi_base_sl = [slice(None, None)] * arr.ndim
@@ -118,3 +179,25 @@ class PartialDerivative(Node):
         return res
 
 
+def matrix_repr(expr, grid, acc):
+    """Returns the matrix representation of a given differential operator an a grid."""
+
+    if isinstance(expr, PartialDerivative):
+        return expr.matrix_repr(grid, acc)
+    elif isinstance(expr, Numberlike):
+        siz = np.prod(grid.shape)
+        if isinstance(expr.value, np.ndarray):
+            fill_value = expr.value.reshape(-1)
+        else:
+            fill_value = expr.value
+        return scipy.sparse.diags(np.full((siz,), fill_value=fill_value))
+    elif isinstance(expr, Coordinate):
+        siz = np.prod(grid.shape)
+        value = grid.meshed_coords[expr.axis].reshape(-1)
+        return scipy.sparse.diags(np.full((siz,), fill_value=value))
+    elif isinstance(expr, Operation):
+        left_result = matrix_repr(expr.left, grid, acc)
+        right_result = matrix_repr(expr.right, grid, acc)
+        return expr.operation(left_result, right_result)
+    else:
+        raise ValueError('Cannot calculate matrix representation of type %s' % type(expr).__name__)
