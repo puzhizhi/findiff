@@ -3,7 +3,6 @@ sys.path.insert(1, '..')
 
 import unittest
 from findiff import coefficients
-from findiff.coefs import coefficients_non_uni
 from findiff.coefs import calc_coefs
 
 import numpy as np
@@ -129,34 +128,15 @@ class TestCoefs(unittest.TestCase):
         expected = [Rational(-1, 6), Rational(-1, 2), Rational(2, 3)]
         np.testing.assert_array_almost_equal(coefs["coefficients"], expected)
 
-    def test_non_uniform(self):
-
-        x = np.linspace(0, 10, 100)
-        dx = x[1] - x[0]
-
-        c_uni = coefficients(deriv=2, acc=2)
-        coefs_uni = c_uni["center"]["coefficients"]/dx**2
-
-        c_non_uni = coefficients_non_uni(deriv=2, acc=2, coords=x, idx=5)
-        coefs_non_uni = c_non_uni["coefficients"]
-
-        np.testing.assert_array_almost_equal(coefs_non_uni, coefs_uni)
-
     def test_invalid_acc_raises_exception(self):
         with self.assertRaises(ValueError):
             coefficients(deriv=1, acc=3)
         with self.assertRaises(ValueError):
             coefficients(deriv=1, acc=0)
-        with self.assertRaises(ValueError):
-            coefficients_non_uni(1, 3, None, None)
-        with self.assertRaises(ValueError):
-            coefficients_non_uni(1, 0, None, None)
 
     def test_invalid_deriv_raises_exception(self):
         with self.assertRaises(ValueError):
             coefficients(-1, 2)
-        with self.assertRaises(ValueError):
-            coefficients_non_uni(-1, 2, None, None)
 
 
 if __name__ == '__main__':

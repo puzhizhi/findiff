@@ -4,8 +4,7 @@ sys.path.insert(1, '..')
 
 import unittest
 import numpy as np
-from findiff import FinDiff
-import findiff
+from findiff import FinDiff, coefficients
 
 
 class TestOldBugs(unittest.TestCase):
@@ -27,13 +26,13 @@ class TestOldBugs(unittest.TestCase):
 
     def test_high_accuracy_results_in_type_error(self):
         # in issue 25 the following line resulted in a TypeError
-        findiff.coefficients(deriv=1, acc=16)
+        coefficients(deriv=1, acc=16)
 
     def test_matrix_repr_with_different_accs(self):
         # issue 28
         shape = (11,)
-        d1 = findiff.FinDiff(0, 1, 2).matrix(shape)
-        d2 = findiff.FinDiff(0, 1, 2, acc=4).matrix(shape)
+        d1 = FinDiff(0, 1, 2).matrix(shape)
+        d2 = FinDiff(0, 1, 2, acc=4).matrix(shape)
 
         self.assertTrue(np.max(np.abs((d1 - d2).toarray())) > 1)
 

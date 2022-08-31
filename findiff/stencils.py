@@ -195,7 +195,7 @@ class Stencil:
 
         self.symbolic = symbolic
 
-        self.max_order = 100
+        self.max_order = 1000
         if not hasattr(offsets[0], "__len__"):
             ndims = 1
             self.offsets = [(off,) for off in offsets]
@@ -256,6 +256,15 @@ class Stencil:
 
     def keys(self):
         return self.values.keys()
+
+    @property
+    def coefficients(self):
+        return list(self.values.values())
+
+    def coefficient(self, offset):
+        if not isinstance(offset, tuple):
+            offset = offset,
+        return self.values.get(offset, 0)
 
     @property
     def values(self):
@@ -524,14 +533,18 @@ class StencilStore:
 
 class Stencil1D:
 
-    def __init__(self, deriv, offsets, dx):
+    def __init__(self, deriv, offsets, dx, symbolic=False):
         self.offsets = offsets
         self.deriv = deriv
         self.spacing = dx
 
         A = self._build_matrix()
         rhs = self._build_rhs()
-        self.coefs = np.linalg.solve(A, rhs) * (self.spacing ** (-self.deriv))
+        if not symbolic:
+            self.coefs = np.linalg.solve(A, rhs) * (self.spacing ** (-self.deriv))
+        else:
+            sol = sympy.linsolve((Matrix(A), Matrix(rhs)))
+            self.coefs = list(sol)[0]
 
     def __str__(self):
         return repr(self)
@@ -570,32 +583,32 @@ class Stencil1D:
 
 class SymmetricStencil1D(Stencil1D):
 
-    def __init__(self, deriv, dx, acc=2):
+    def __init__(self, deriv, dx, acc=2, symbolic=False):
         assert acc % 2 == 0
         self.acc = acc
         num_central = 2 * math.floor((deriv + 1) / 2) - 1 + acc
         p = num_central // 2
         offsets = np.array(list(range(-p, p + 1)))
-        super(SymmetricStencil1D, self).__init__(deriv, offsets, dx)
+        super(SymmetricStencil1D, self).__init__(deriv, offsets, dx, symbolic)
 
 
 class ForwardStencil1D(Stencil1D):
-    def __init__(self, deriv, dx, acc=2):
+    def __init__(self, deriv, dx, acc=2, symbolic=False):
         assert acc % 2 == 0
         self.acc = acc
         num_coefs = 2 * math.floor((deriv + 1) / 2) - 1 + acc
         if deriv % 2 == 0:
             num_coefs = num_coefs + 1
         offsets = np.array(list(range(0, num_coefs)))
-        super(ForwardStencil1D, self).__init__(deriv, offsets, dx)
+        super(ForwardStencil1D, self).__init__(deriv, offsets, dx, symbolic)
 
 
 class BackwardStencil1D(Stencil1D):
-    def __init__(self, deriv, dx, acc=2):
+    def __init__(self, deriv, dx, acc=2, symbolic=False):
         assert acc % 2 == 0
         self.acc = acc
         num_coefs = 2 * math.floor((deriv + 1) / 2) - 1 + acc
         if deriv % 2 == 0:
             num_coefs = num_coefs + 1
         offsets = -np.array(list(range(0, num_coefs)))
-        super(BackwardStencil1D, self).__init__(deriv, offsets[::-1], dx)
+        super(BackwardStencil1D, self).__init__(deriv, offsets[::-1], dx, symbolic)

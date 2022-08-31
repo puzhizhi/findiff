@@ -2,6 +2,8 @@ import matplotlib.pyplot as plt
 from matplotlib.patches import Circle
 import numpy as np
 
+import test.test_api
+
 
 def label(ax, xy, names, font_size=12):
     text = ""
@@ -34,7 +36,7 @@ def plot_stencil(ax, stencil, xrange=None, yrange=None, label=label, font_size=1
     ax.set_xlim(*xrange)
     ax.set_ylim(*yrange)
     ax.set_axis_off()
-    ax.grid(visible=True, axis='both')
+    test.test_api.grid(visible=True, axis='both')
 
 
 def plot_num_grid(ax, xrange, yrange):

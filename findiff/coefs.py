@@ -1,6 +1,7 @@
 """
-This module determines finite difference coefficients for uniform and 
-non-uniform grids for any desired even accuracy order.
+This module determines finite difference coefficients in one dimension
+for any desired even accuracy order. It is mostly obsolete by now, as the 'stencils'
+module basically is a generalization. Mainly kept for compatibility reasons.
 
 Most important function:
 
@@ -10,9 +11,7 @@ to calculate the finite difference coefficients for a given derivative
 order and given accuracy order to given offsets.
 """
 
-import math
-import numpy as np
-import sympy
+from .stencils import Stencil, SymmetricStencil1D, ForwardStencil1D, BackwardStencil1D
 
 
 def coefficients(deriv, acc=None, offsets=None, symbolic=False):
@@ -53,178 +52,33 @@ def coefficients(deriv, acc=None, offsets=None, symbolic=False):
         return calc_coefs(deriv, offsets, symbolic)
 
     _validate_acc(acc)
-    ret = {}
-
-    # Determine central coefficients
-
-    num_central = 2 * math.floor((deriv + 1) / 2) - 1 + acc
-    num_side = num_central // 2
-    offsets = list(range(-num_side, num_side+1))
-
-    ret["center"] = calc_coefs(deriv, offsets, symbolic)
-
-    # Determine forward coefficients
-
-    if deriv % 2 == 0:
-        num_coef = num_central + 1
-    else:
-        num_coef = num_central
-
-    offsets = list(range(num_coef))
-    ret["forward"] = calc_coefs(deriv, offsets, symbolic)
-
-    # Determine backward coefficients
-
-    offsets = list(range(-num_coef+1, 1))
-    ret["backward"] = calc_coefs(deriv, offsets, symbolic)
-
-    return ret
+    return {
+        scheme: calc_coefs_standard(deriv, acc, scheme, symbolic)
+        for scheme in ('center', 'forward', 'backward')
+    }
 
 
 def calc_coefs(deriv, offsets, symbolic=False):
-
-    matrix = _build_matrix(offsets, symbolic)
-    rhs = _build_rhs(offsets, deriv, symbolic)
-    if symbolic:
-        coefs = sympy.linsolve((matrix, rhs))
-        coefs = list(tuple(coefs)[0])
-        acc = _calc_accuracy(offsets, coefs, deriv, symbolic)
-        return {
-            "coefficients": coefs,
-            "offsets": offsets,
-            "accuracy": acc
-        }
-
-    else:
-        coefs = np.linalg.solve(matrix, rhs)
-        acc = _calc_accuracy(offsets, coefs, deriv, symbolic)
-
-        return {
-            "coefficients": coefs,
-            "offsets": np.array(offsets),
-            "accuracy": acc
-        }
+    stencil = Stencil(offsets, {(deriv,): 1}, symbolic=symbolic)
+    return {
+        "coefficients": [stencil.coefficient(o) for o in offsets],
+        "offsets": stencil.offsets,
+        "accuracy": stencil.accuracy
+    }
 
 
-def coefficients_non_uni(deriv, acc, coords, idx):
-    """
-    Calculates the finite difference coefficients for given derivative order and accuracy order.
-    Assumes that the underlying grid is non-uniform.
-
-    :param deriv: int > 0: The derivative order.
-
-    :param acc:  even int > 0: The accuracy order.
-     
-    :param coords:  1D numpy.ndarray: the coordinates of the axis for the partial derivative
-    
-    :param idx:  int: index of the grid position where to calculate the coefficients
-
-    :return: dict with the finite difference coefficients and corresponding offsets 
-    """
-
-    _validate_deriv(deriv)
-    _validate_acc(acc)
-
-    num_central = 2 * math.floor((deriv + 1) / 2) - 1 + acc
-    num_side = num_central // 2
-
-    if deriv % 2 == 0:
-        num_coef = num_central + 1
-    else:
-        num_coef = num_central
-
-    if idx < num_side:
-        matrix = _build_matrix_non_uniform(0, num_coef - 1, coords, idx)
-
-        offsets = list(range(num_coef))
-        rhs = _build_rhs(offsets, deriv)
-
-        ret = {
-            "coefficients": np.linalg.solve(matrix, rhs),
-            "offsets": np.array(offsets)
-        }
-
-    elif idx >= len(coords) - num_side:
-        matrix = _build_matrix_non_uniform(num_coef - 1, 0, coords, idx)
-
-        offsets = list(range(-num_coef+1, 1))
-        rhs = _build_rhs(offsets, deriv)
-
-        ret = {
-            "coefficients": np.linalg.solve(matrix, rhs),
-            "offsets": np.array(offsets)
-        }
-
-    else:
-        matrix = _build_matrix_non_uniform(num_side, num_side, coords, idx)
-
-        offsets = list(range(-num_side, num_side+1))
-        rhs = _build_rhs(offsets, deriv)
-
-        ret = {
-            "coefficients": np.linalg.solve(matrix, rhs),
-            "offsets": np.array([p for p in range(-num_side, num_side + 1)])
-        }
-
-    return ret
-
-
-def _build_matrix(offsets, symbolic=False):
-    """Constructs the equation system matrix for the finite difference coefficients"""
-
-    A = [([1 for _ in offsets])]
-    for i in range(1, len(offsets)):
-        A.append([j**i for j in offsets])
-    if symbolic:
-        return sympy.Matrix(A)
-    else:
-        return np.array(A,dtype='float')
-
-
-def _build_rhs(offsets, deriv, symbolic=False):
-    """The right hand side of the equation system matrix"""
-
-    b = [0 for _ in offsets]
-    b[deriv] = math.factorial(deriv)
-    if symbolic:
-        return sympy.Matrix(b)
-    else:
-        return np.array(b,dtype='float')
-
-
-def _build_matrix_non_uniform(p, q, coords, k):
-    """Constructs the equation matrix for the finite difference coefficients of non-uniform grids at location k"""
-    A = [[1] * (p+q+1)]
-    for i in range(1, p + q + 1):
-        line = [(coords[k+j] - coords[k])**i for j in range(-p, q+1)]
-        A.append(line)
-    return np.array(A,dtype='float')
-
-
-def _calc_accuracy(offsets, coefs, deriv, symbolic=False):
-
-    n = deriv + 1
-    max_n = 999
-    if symbolic:
-        break_cond = lambda b: b != 0
-    else:
-        break_cond = lambda b: abs(b) > 1.E-6
-
-    while True:
-        b = 0
-        #for i, coef in enumerate(coefs):
-        for o, coef in zip(offsets, coefs):
-            #k = min(offsets) + i
-            b += coef * o ** n
-
-        if break_cond(b):
-            break
-
-        n += 1
-        if n > max_n:
-            raise Exception('Cannot compute accuracy.')
-
-    return round(n - deriv)
+def calc_coefs_standard(deriv, acc, scheme, symbolic=False):
+    if scheme == 'center':
+        stencil = SymmetricStencil1D(deriv, 1, acc, symbolic)
+    elif scheme == 'forward':
+        stencil = ForwardStencil1D(deriv, 1, acc, symbolic)
+    elif scheme == 'backward':
+        stencil = BackwardStencil1D(deriv, 1, acc, symbolic)
+    return {
+        "coefficients": stencil.coefficients,
+        "offsets": stencil.offsets,
+        "accuracy": acc
+    }
 
 
 def _validate_acc(acc):

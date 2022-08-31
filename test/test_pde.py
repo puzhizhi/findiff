@@ -4,7 +4,7 @@ sys.path.insert(1, '..')
 import unittest
 import numpy as np
 from numpy.testing import assert_array_almost_equal, assert_array_equal
-from findiff.operators import FinDiff, Identity, Coef
+from findiff import FinDiff, Identity, Coef
 from findiff.pde import *
 #import matplotlib.pyplot as plt
 #from mpl_toolkits import mplot3d
