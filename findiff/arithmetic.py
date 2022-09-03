@@ -4,7 +4,10 @@ addition and multiplication between objects like differential operators.
 
 
 class Arithmetic:
-    """The base class of all arithmetic entities in findiff."""
+    """The base class of all arithmetic entities in findiff.
+
+    Arithmetic entites are objects that can be composed to calculation graphs.
+    """
 
     def __init__(self):
         # We decided to use variables for handling the Add and
@@ -85,7 +88,7 @@ class Operation(Arithmetic):
         return '%s(%s, %s)' % (self.__class__.__name__, self.left, self.right)
 
     def __str__(self):
-        return '%s(%s, %s)' % (self.__class__.__name__, self.left, self.right)
+        return self.__repr__()
 
     def _needs_wrapping(self, arg):
         return not arg.__class__.__module__.startswith('findiff')

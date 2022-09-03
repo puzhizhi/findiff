@@ -10,6 +10,7 @@ from findiff.deriv import PartialDerivative, EquidistantGrid, InvalidGrid
 
 __all__ = ['Diff', 'Coef']
 
+
 class Diff(Arithmetic):
 
     def __init__(self, *args):
@@ -51,9 +52,46 @@ class Diff(Arithmetic):
         self.partial = PartialDerivative(degrees)
 
     def __call__(self, f, **kwargs):
+        """Applies the partial derivative operator to an array.
+
+        The function delegates to self.apply(f, **kwargs).
+
+        Parameters
+        ----------
+        f : numpy.ndarray
+            The array on which to apply the derivative operator
+
+        kwargs : required keyword arguments
+
+            Keywords:
+
+                spacing : dict
+                    Dictionary specifying the grid spacing (key=axis, value=spacing).
+
+                acc :  even int > 0, optional, default: 2
+                    The desired accuracy order.
+
+        Returns
+        -------
+        out : numpy.ndarray
+            The array with the evaluated derivative. Same shape as f.
+
+        Examples
+        --------
+        >> x = y = np.linspace(0, 1, 100)
+        >> dx = dy = x[1] - x[0]
+        >> X, Y = np.meshgrid(x, y, indexing='ij')
+        >> f = X**2 * Y**2
+        >> d2_dxdy = Diff({0: 1, 1: 1})    # or: Diff(0) * Diff(1)
+        >> d2f_dxdy = d2_dxdy(f, spacing={0: dx, 1: dy})
+        """
         return self.apply(f, **kwargs)
 
     def apply(self, f, **kwargs):
+        """Applies the partial derivative operator to an array.
+
+        For details, see help on __call__.
+        """
         if 'spacing' in kwargs:
             spacing = kwargs['spacing']
 
@@ -87,6 +125,6 @@ class Diff(Arithmetic):
 
 
 class Coef(Numberlike):
+    """Wrapper class for numbers or numpy arrays."""
     def __init__(self, value):
         super(Coef, self).__init__(value)
-

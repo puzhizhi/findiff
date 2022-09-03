@@ -1,3 +1,12 @@
+"""This module contains the backend classes for operating with derivative
+operators. These classes are not intended for direct use from outside of
+the package. Users shall use the classes in the api module, which delegate
+to the classes in this module as required. The classes in this module expect
+valid input data and perform no checking on their own. Thorough input validation
+is performed in the frontend classes of the api module which are exposed
+externally.
+"""
+
 import numbers
 
 import numpy as np
@@ -20,23 +29,25 @@ class PartialDerivative(Arithmetic):
         degrees:    dict
             Dictionary describing the partial derivative. key: value <==> axis: degree
         """
+        super(PartialDerivative, self).__init__()
         self._validate_degrees(degrees)
         self.degrees = degrees
 
     def degree(self, axis):
+        """Returns the derivative degree along a given axis."""
         return self.degrees.get(axis, 0)
 
     @property
     def axes(self):
+        """Returns a sorted list of all axis along which to take derivatives."""
         return sorted(self.degrees.keys())
 
-    def __add__(self, other):
-        return Add(self, other)
-
-    def __radd__(self, other):
-        return Add(other, self)
-
     def __mul__(self, other):
+        """Multiply PartialDerivative instance with some other object.
+
+        Overrides the method from the Arithmetic class to allow for merging
+        two PartialDerivative objects into one.
+        """
         if type(other) != PartialDerivative:
             return Mul(self, other)
         new_degrees = dict(self.degrees)
@@ -50,9 +61,6 @@ class PartialDerivative(Arithmetic):
     def __rmul__(self, other):
         assert type(other) != PartialDerivative
         return Mul(other, self)
-
-    def __neg__(self):
-        return Mul(-1, self)
 
     def __repr__(self):
         return str(self.degrees)
@@ -223,8 +231,17 @@ class Coordinate(Arithmetic):
 
 
 class EquidistantGrid:
+    """Utility class for representing an equidistant grid of any dimension."""
 
     def __init__(self, *args):
+        """Creates an EquidistandGrid object.
+
+        Parameters
+        ----------
+        args : variable number of tuples
+            Tuples for the form (from, to, num_points) specifying the domain along
+            all axes.
+        """
         self.ndims = len(args)
         self.coords = [np.linspace(*arg) for arg in args]
         self.meshed_coords = np.meshgrid(*self.coords, indexing='ij')
@@ -241,6 +258,20 @@ class EquidistantGrid:
 
     @classmethod
     def from_spacings(cls, ndims, spacings):
+        """Factory method to create a (dummy) Equidistant grid from the total number of dimensinos and spacings
+
+        Parameters
+        ----------
+        ndims : int > 0
+            The total number of space dimensions.
+        spacings : dict
+            The grid spacings along all required axes. (key = axis, value = spacing along axis)
+
+        Returns
+        -------
+        out : EquidistantGrid
+            The generated grid.
+        """
         args = []
         cls._validate_spacings(spacings)
 
@@ -266,9 +297,9 @@ class EquidistantGrid:
         for axis in range(len(shape)):
             if axis in spacings:
                 h = spacings[axis]
-                args.append((0, h * (shape[axis]-1), shape[axis]))
+                args.append((0, h * (shape[axis] - 1), shape[axis]))
             else:
-                args.append((0, shape[axis]-1, shape[axis]))
+                args.append((0, shape[axis] - 1, shape[axis]))
         return EquidistantGrid(*args)
 
 
