@@ -4,7 +4,7 @@ sys.path.insert(1, '..')
 from math import log
 import unittest
 import numpy as np
-from findiff import FinDiff
+from findiff.legacy import FinDiff
 
 class TestScaling(unittest.TestCase):
 

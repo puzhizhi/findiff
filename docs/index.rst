@@ -17,13 +17,11 @@ Features
 - Differentiate arrays of any number of dimensions along any axis with any desired accuracy order
 - Accurate treatment of grid boundary
 - Includes standard operators from vector calculus like gradient, divergence and curl
-- Can handle uniform and non-uniform grids
 - Can handle arbitrary linear combinations of derivatives with constant and variable coefficients
 - Fully vectorized for speed
-- Calculate raw finite difference coefficients for any order and accuracy for uniform and non-uniform grids
-- _New in version 0.7:_ Generate matrix representations of arbitrary linear differential operators
-- _New in version 0.8:_ Solve partial differential equations with Dirichlet or Neumann boundary conditions
-- _New in version 0.9:_ Generate differential operators for arbitrary stencils
+- Calculate finite difference coefficients and stencils for any order, accuracy and dimension
+- Generate matrix representations of arbitrary linear differential operators
+- Solve partial differential equations with Dirichlet or Neumann boundary conditions
 
 
 Content

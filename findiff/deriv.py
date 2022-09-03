@@ -1,14 +1,14 @@
 import numbers
+
 import numpy as np
 import scipy
 
-from findiff.arithmetic import Combinable, Mul, Add, Numberlike, Operation
-from findiff.grids import Coordinate
+from findiff.arithmetic import Arithmetic, Mul, Add, Numberlike, Operation
 from findiff.stencils import StencilStore, SymmetricStencil1D, ForwardStencil1D, BackwardStencil1D
-from findiff.utils import to_long_index, long_indices_as_ndarray
+from findiff.utils import long_indices_as_ndarray, to_long_index
 
 
-class PartialDerivative(Combinable):
+class PartialDerivative(Arithmetic):
 
     def __init__(self, degrees):
         """ Representation of a (possibly mixed) partial derivative.
@@ -205,3 +205,76 @@ def matrix_repr(expr, grid, acc):
         return expr.operation(left_result, right_result)
     else:
         raise ValueError('Cannot calculate matrix representation of type %s' % type(expr).__name__)
+
+
+class Coordinate(Arithmetic):
+
+    def __init__(self, axis):
+        assert axis >= 0 and axis == int(axis)
+        super(Coordinate, self).__init__()
+        self.name = 'x_{%d}' % axis
+        self.axis = axis
+
+    def __eq__(self, other):
+        return self.axis == other.axis
+
+    def apply(self, f, grid, *args, **kwargs):
+        return grid.meshed_coords[self.axis] * f
+
+
+class EquidistantGrid:
+
+    def __init__(self, *args):
+        self.ndims = len(args)
+        self.coords = [np.linspace(*arg) for arg in args]
+        self.meshed_coords = np.meshgrid(*self.coords, indexing='ij')
+        self.spacings = np.array(
+            [self.coords[axis][1] - self.coords[axis][0] for axis in range(len(self.coords))]
+        )
+
+    def spacing(self, axis):
+        return self.spacings[axis]
+
+    @property
+    def shape(self):
+        return tuple(len(c) for c in self.coords)
+
+    @classmethod
+    def from_spacings(cls, ndims, spacings):
+        args = []
+        cls._validate_spacings(spacings)
+
+        for axis in range(ndims):
+            if axis in spacings:
+                h = spacings[axis]
+                args.append((0, h * 20, 21))
+            else:
+                args.append((0, 10, 11))
+        return EquidistantGrid(*args)
+
+    @classmethod
+    def _validate_spacings(cls, spacings):
+        for axis, spacing in spacings.items():
+            if axis < 0 or not isinstance(axis, numbers.Integral):
+                raise InvalidGrid('axis must be non-negative integer.')
+            if spacing <= 0:
+                raise InvalidGrid('spacing must be positive number.')
+
+    @classmethod
+    def from_shape_and_spacings(cls, shape, spacings):
+        args = []
+        for axis in range(len(shape)):
+            if axis in spacings:
+                h = spacings[axis]
+                args.append((0, h * (shape[axis]-1), shape[axis]))
+            else:
+                args.append((0, shape[axis]-1, shape[axis]))
+        return EquidistantGrid(*args)
+
+
+class FinDiffException(Exception):
+    pass
+
+
+class InvalidGrid(FinDiffException):
+    pass

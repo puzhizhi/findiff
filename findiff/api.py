@@ -1,161 +1,75 @@
-import numpy as np
+""" This module contains classes that are intended for user interaction.
 
-from findiff.arithmetic import Combinable, Numberlike, Add, Mul, Operation
-from findiff.deriv import PartialDerivative, matrix_repr
-from findiff.grids import EquidistantGrid
-from findiff.stencils import StencilSet
+    The most important class is `Diff` which allows for a convenient way
+    to define partial derivatives and compose general differential operators.
+"""
+import numbers
 
+from findiff.arithmetic import Arithmetic, Numberlike
+from findiff.deriv import PartialDerivative, EquidistantGrid, InvalidGrid
 
-class FinDiff(Combinable):
-    """ A representation of a general linear differential operator expressed in finite differences.
+__all__ = ['Diff', 'Coef']
 
-                FinDiff objects can be added with other FinDiff objects. They can be multiplied by
-                objects of type Coefficient.
-
-                FinDiff is callable, i.e. to apply the derivative, just call the object on the array to
-                differentiate.
-
-                :param args: variable number of tuples. Defines what derivative to take.
-                    If only one tuple is given, you can leave away the tuple parentheses.
-
-                Each tuple has the form
-
-                       `(axis, spacing, count)`
-
-                     `axis` is the dimension along which to take derivative.
-
-                     `spacing` is the grid spacing of the uniform grid along that axis.
-
-                     `count` is the order of the derivative, which is optional an defaults to 1.
-
-
-                :param kwargs:  variable number of keyword arguments
-
-                    Allowed keywords:
-
-                    `acc`:    even integer
-                          The desired accuracy order. Default is acc=2.
-
-                This class is actually deprecated and will be replaced by the Diff class in the future.
-
-            **Example**:
-
-
-               For this example, we want to operate on some 3D array f:
-
-               >>> import numpy as np
-               >>> x, y, z = [np.linspace(-1, 1, 100) for _ in range(3)]
-               >>> X, Y, Z = np.meshgrid(x, y, z, indexing='ij')
-               >>> f = X**2 + Y**2 + Z**2
-
-               To create :math:`\\frac{\\partial f}{\\partial x}` on a uniform grid with spacing dx, dy
-               along the 0th axis or 1st axis, respectively, instantiate a FinDiff object and call it:
-
-               >>> d_dx = FinDiff(0, dx)
-               >>> d_dy = FinDiff(1, dx)
-               >>> result = d_dx(f)
-
-               For :math:`\\frac{\\partial^2 f}{\\partial x^2}` or :math:`\\frac{\\partial^2 f}{\\partial y^2}`:
-
-               >>> d2_dx2 = FinDiff(0, dx, 2)
-               >>> d2_dy2 = FinDiff(1, dy, 2)
-               >>> result_2 = d2_dx2(f)
-               >>> result_3 = d2_dy2(f)
-
-               For :math:`\\frac{\\partial^4 f}{\partial x \\partial^2 y \\partial z}`, do:
-
-               >>> op = FinDiff((0, dx), (1, dy, 2), (2, dz))
-               >>> result_4 = op(f)
-
-
-        """
-
-    def __init__(self, *args, **kwargs):
-
-        super(FinDiff, self).__init__()
-        self.add_handler = DirtyAdd
-        self.mul_handler = DirtyMul
-        self.acc = 2
-
-        if 'acc' in kwargs:
-            self.acc = kwargs['acc']
-
-        degrees, spacings = self._parse_args(args)
-        self.partial = PartialDerivative(degrees)
-
-        # The old FinDiff API does not fully specify the grid.
-        # So use a dummy-grid for all non-specified values:
-        self.grid = EquidistantGrid.from_spacings(max(degrees.keys()) + 1, spacings)
-        self._user_specified_spacings = spacings
-
-    def __call__(self, f, acc=None):
-        self.acc = acc or self.acc
-        return self.apply(f)
-
-    def apply(self, f):
-        return self.partial.apply(f, self.grid, self.acc)
-
-    def matrix(self, shape, acc=None):
-        acc = acc or self.acc
-        if shape != self.grid.shape:
-            # The old FinDiff API does not fully specify the grid.
-            # The constructor tentatively constructed a dummy grid. Now
-            # update this information. In particular, we now know the exact
-            # number of space dimensions:
-            self.grid = EquidistantGrid.from_shape_and_spacings(shape, self._user_specified_spacings)
-        return self.partial.matrix_repr(self.grid, acc)
-
-    def stencil(self, shape):
-        return StencilSet(self, shape)
-
-    def _parse_args(self, args):
-        assert len(args) > 0
-        canonic_args = []
-
-        def parse_tuple(tpl):
-            if len(tpl) == 2:
-                canonic_args.append(tpl + (1,))
-            elif len(tpl) == 3:
-                canonic_args.append(tpl)
-            else:
-                raise ValueError('Invalid input format for FinDiff.')
-
-        if not hasattr(args[0], '__len__'):  # we expect a pure derivative
-            parse_tuple(args)
-        else:  # we have a mixed partial derivative
-            for arg in args:
-                parse_tuple(arg)
-
-        degrees = {}
-        spacings = {}
-        for axis, spacing, degree in canonic_args:
-            if axis in degrees:
-                raise ValueError('FinDiff: Same axis specified twice.')
-            degrees[axis] = degree
-            spacings[axis] = spacing
-
-        return degrees, spacings
-
-
-class Diff:
+class Diff(Arithmetic):
 
     def __init__(self, *args):
+        """Defines a (possibly mixed) partial derivative operator.
+
+        Note the difference between defining the derivative operator and applying it.
+        For applying the derivative operator, call it, once it is defined.
+
+        Parameters
+        ----------
+        args:   Variable list of arguments specifying the kind of partial derivative.
+
+            If exactly one integer argument is given, it means 'axis', where 'axis' is
+            a positive integer, denoting the axis along which to take the (first, degree=1)
+            derivative.
+
+            If exactly one dictionary argument is given, it specifies a general, possibly
+            mixed partial derivative. Each key denotes an axis along which to take a partial
+            derivative, and the corresponding value denotes the degree of the derivative.
+
+            If two integer arguments are given, the first denotes the axis along which
+            to take the derivative, the second denotes the degree of the derivative.
+
+        """
+        super(Diff, self).__init__()
         if len(args) == 1 and type(args[0]) == dict:
-            pass
+            degrees = args[0]
         elif len(args) == 2:
             axis, degree = args
+            degrees = {axis: degree}
         elif len(args) == 1:
             axis, degree = args[0], 1
+            degrees = {axis: degree}
+        else:
+            raise ValueError('Diff constructor has received invalid argument(s): ' + str(args))
 
-        self.partial = PartialDerivative(({axis: degree}))
+        self._validate_degrees_dict(degrees)
+
+        self.partial = PartialDerivative(degrees)
 
     def __call__(self, f, **kwargs):
+        return self.apply(f, **kwargs)
+
+    def apply(self, f, **kwargs):
         if 'spacing' in kwargs:
             spacing = kwargs['spacing']
-            spacing = np.array([spacing.get(axis, 1) for axis in range(f.ndim)])
-            ends = spacing * (np.array(f.shape) - 1)
-            args = [(0, end, num_points) for end, num_points in zip(ends, f.shape)]
-            grid = EquidistantGrid(*args)
+
+            if not isinstance(spacing, dict):
+                raise InvalidGrid('spacing keyword argument must be a dict.')
+
+            # Assert that spacings along all axes are defined, where derivatives need:
+            for axis in self.partial.axes:
+                if axis not in spacing:
+                    raise InvalidGrid('No spacing along axis %d defined.' % axis)
+
+            ndims_effective = max(spacing.keys()) + 1
+            grid = EquidistantGrid.from_spacings(ndims_effective, spacing)
+        else:
+            raise InvalidGrid('No spacing defined when applying Diff.')
+
         if 'acc' in kwargs:
             acc = kwargs['acc']
         else:
@@ -163,58 +77,16 @@ class Diff:
 
         return self.partial.apply(f, grid, acc)
 
+    def _validate_degrees_dict(self, degrees):
+        assert isinstance(degrees, dict)
+        for axis, degree in degrees.items():
+            if not isinstance(axis, numbers.Integral) or axis < 0:
+                raise ValueError('Axis must be positive integer')
+            if not isinstance(degree, numbers.Integral) or degree <= 0:
+                raise ValueError('Degree must be positive integer')
 
 
-class DirtyMixin:
-
-    def __init__(self):
-        self.add_handler = DirtyAdd
-        self.mul_handler = DirtyMul
-
-    def matrix(self, shape):
-        if isinstance(self, Operation):
-            left = self.left.matrix(shape)
-            right = self.right.matrix(shape)
-            return self.operation(left, right)
-        elif not isinstance(self, FinDiff):
-            grid = EquidistantGrid.from_shape_and_spacings(shape, {})
-            return matrix_repr(self, grid, 2)
-        return self.matrix(shape)
-
-    def stencil(self, shape):
-        return StencilSet(self, shape)
-
-
-class DirtyNumberlike(DirtyMixin, Numberlike):
-
-    def __init__(self, value):
-        Numberlike.__init__(self, value)
-        DirtyMixin.__init__(self)
-
-class Coef(DirtyNumberlike):
+class Coef(Numberlike):
     def __init__(self, value):
         super(Coef, self).__init__(value)
 
-class Identity(DirtyNumberlike):
-
-    def __init__(self):
-        super(Identity, self).__init__(1)
-
-    def __call__(self, f, *args, **kwargs):
-        return f
-
-
-class DirtyAdd(DirtyMixin, Add):
-    wrapper_class = DirtyNumberlike
-
-    def __init__(self, *args, **kwargs):
-        Add.__init__(self, *args, **kwargs)
-        DirtyMixin.__init__(self)
-
-
-class DirtyMul(DirtyMixin, Mul):
-    wrapper_class = DirtyNumberlike
-
-    def __init__(self, *args, **kwargs):
-        Mul.__init__(self, *args, **kwargs)
-        DirtyMixin.__init__(self)

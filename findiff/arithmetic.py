@@ -1,32 +1,51 @@
-class Combinable:
+""" This module contains the classes for arithmetic operations like
+addition and multiplication between objects like differential operators.
+"""
+
+
+class Arithmetic:
+    """The base class of all arithmetic entities in findiff."""
 
     def __init__(self):
+        # We decided to use variables for handling the Add and
+        # Mul operations because this allows other classes
+        # to override this behavior. (see the oldapi.py module)
         self.add_handler = Add
         self.mul_handler = Mul
 
     def __add__(self, other):
+        """Returns self + other"""
         return self.add_handler(self, other)
 
     def __radd__(self, other):
+        """Returns other + self"""
         return self.add_handler(other, self)
 
     def __mul__(self, other):
+        """Returns self * other."""
         return self.mul_handler(self, other)
 
     def __rmul__(self, other):
+        """Returns other * self."""
         return self.mul_handler(other, self)
 
     def __sub__(self, other):
+        """Returns self - other."""
         return self.add_handler(self, self.mul_handler(-1, other))
 
     def __rsub__(self, other):
+        """Returns other - self."""
         return self.add_handler(other, self.mul_handler(-1, self))
 
     def __neg__(self):
+        """Converts -self to (-1) * self."""
         return self.mul_handler(-1, self)
 
 
-class Numberlike(Combinable):
+class Numberlike(Arithmetic):
+    """Wrapper class for all numberlike objects (numbers, arrays) that shall
+       be used as arithmetic entities.
+    """
 
     def __init__(self, value):
         super(Numberlike, self).__init__()
@@ -42,7 +61,11 @@ class Numberlike(Combinable):
         return str(self.value)
 
 
-class Operation(Combinable):
+class Operation(Arithmetic):
+    """Base class for all binary operations between arithmetic entitites.
+
+       This class is never instantiated by itself.
+    """
 
     operation = None
     wrapper_class = Numberlike
@@ -72,6 +95,7 @@ class Operation(Combinable):
 
 
 class Mul(Operation):
+    """The multiplication operation."""
 
     def operation(self, a, b):
         return a * b
@@ -87,8 +111,8 @@ class Mul(Operation):
         return res
 
 
-
 class Add(Operation):
+    """The addition operation."""
 
     def operation(self, a, b):
         return a + b
@@ -106,4 +130,3 @@ class Add(Operation):
             left_result = self.left.apply(target, self.operation)
 
         return left_result + right_result
-

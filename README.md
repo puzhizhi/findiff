@@ -118,8 +118,10 @@ These can be obtained for __any__ derivative and accuracy order
 using `findiff.coefficients(deriv, acc)`. For instance,
 
 ```python
+import findiff.legacy
 import findiff
-coefs = findiff.coefficients(deriv=3, acc=4, symbolic=True)
+
+coefs = findiff.legacy.coefficients(deriv=3, acc=4, symbolic=True)
 ```
 
 gives
@@ -138,8 +140,10 @@ accuracy order, you can do this by setting the offset keyword
 argument:
 
 ```python
+import findiff.legacy
 import findiff
-coefs = findiff.coefficients(deriv=2, offsets=[-2, 1, 0, 2, 3, 4, 7], symbolic=True)
+
+coefs = findiff.legacy.coefficients(deriv=2, offsets=[-2, 1, 0, 2, 3, 4, 7], symbolic=True)
 ```
 
 The resulting accuracy order is computed and part of the output:

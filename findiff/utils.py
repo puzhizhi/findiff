@@ -1,4 +1,5 @@
 from itertools import product
+
 import numpy as np
 
 
@@ -37,7 +38,3 @@ def to_index_tuple(long_idx, shape):
         long_idx = long_idx - s * idx[k]
 
     return tuple(idx)
-
-
-
-

@@ -4,8 +4,7 @@ Basic Examples of *findiff*
 
 *findiff* works in any dimension. But for the sake of demonstration,
 let's concentrate on the cases 1D and 3D. We are using uniform, i.e.
-equidistant, grids here. The non-uniform case will be shown in another
-notebook.
+equidistant, grids here.
 
 Preliminaries
 -------------

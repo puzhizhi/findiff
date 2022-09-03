@@ -1,10 +1,13 @@
 import sys
+
+from findiff.utils import interior_mask_as_ndarray, all_index_tuples_as_list, to_long_index, to_index_tuple
+
 sys.path.insert(1, '..')
 
 import unittest
 import numpy as np
-from numpy.testing import assert_array_almost_equal, assert_array_equal
-from findiff.utils import *
+from numpy.testing import assert_array_almost_equal
+
 
 class TestUtils(unittest.TestCase):
 

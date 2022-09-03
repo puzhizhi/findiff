@@ -2,7 +2,7 @@ import matplotlib.pyplot as plt
 from matplotlib.patches import Circle
 import numpy as np
 
-import test.test_api
+import test.test_legacy
 
 
 def label(ax, xy, names, font_size=12):

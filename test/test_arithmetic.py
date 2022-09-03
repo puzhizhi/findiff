@@ -1,7 +1,6 @@
 import unittest
 
-from findiff.deriv import PartialDerivative
-from findiff.grids import Coordinate
+from findiff.deriv import PartialDerivative, Coordinate
 from findiff.arithmetic import Mul
 
 

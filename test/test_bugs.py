@@ -4,7 +4,7 @@ sys.path.insert(1, '..')
 
 import unittest
 import numpy as np
-from findiff import FinDiff, coefficients
+from findiff.legacy import FinDiff, coefficients
 
 
 class TestOldBugs(unittest.TestCase):
