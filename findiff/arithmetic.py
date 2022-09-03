@@ -104,12 +104,13 @@ class Mul(Operation):
         return a * b
 
     def apply(self, target, *args, **kwargs):
+        """Perform the multiplication, broadcasting the command to the left and right side."""
 
         for side in [self.right, self.left]:
-            if not isinstance(side, Numberlike):
-                res = side.apply(target, *args, **kwargs)
-            else:
+            if isinstance(side, Numberlike): # simplgy multiply
                 res = side.apply(target, self.operation)
+            else: # may be specific operation, like partial derivative merging
+                res = side.apply(target, *args, **kwargs)
             target = res
         return res
 
@@ -121,6 +122,7 @@ class Add(Operation):
         return a + b
 
     def apply(self, target, *args, **kwargs):
+        """Perform the addition, broadcasting the command to the left and right side."""
 
         if type(self.right) != Numberlike:
             right_result = self.right.apply(target, *args, **kwargs)
