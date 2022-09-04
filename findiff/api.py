@@ -5,13 +5,13 @@
 """
 import numbers
 
-from findiff.arithmetic import Arithmetic, Numberlike
+from findiff.algebraic import Algebraic, Numberlike
 from findiff.deriv import PartialDerivative, EquidistantGrid, InvalidGrid
 
 __all__ = ['Diff', 'Coef']
 
 
-class Diff(Arithmetic):
+class Diff(Algebraic):
 
     def __init__(self, *args):
         """Defines a (possibly mixed) partial derivative operator.

@@ -1,7 +1,7 @@
 import numpy as np
 
 from findiff.stencils import Stencil
-from ..arithmetic import Arithmetic, Numberlike, Add, Mul, Operation
+from ..algebraic import Algebraic, Numberlike, Add, Mul, Operation
 from ..deriv import PartialDerivative, matrix_repr, EquidistantGrid
 from ..stencils import StencilSet, SymmetricStencil1D, ForwardStencil1D, BackwardStencil1D
 from .pde import BoundaryConditions
@@ -11,7 +11,7 @@ __all__ = [
 ]
 
 
-class FinDiff(Arithmetic):
+class FinDiff(Algebraic):
     """ A representation of a general linear differential operator expressed in finite differences.
 
         FinDiff objects can be added with other FinDiff objects. They can be multiplied by

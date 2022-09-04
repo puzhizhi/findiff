@@ -12,12 +12,12 @@ import numbers
 import numpy as np
 import scipy
 
-from findiff.arithmetic import Arithmetic, Mul, Add, Numberlike, Operation
+from findiff.algebraic import Algebraic, Mul, Add, Numberlike, Operation
 from findiff.stencils import StencilStore, SymmetricStencil1D, ForwardStencil1D, BackwardStencil1D
 from findiff.utils import long_indices_as_ndarray, to_long_index
 
 
-class PartialDerivative(Arithmetic):
+class PartialDerivative(Algebraic):
 
     def __init__(self, degrees):
         """ Representation of a (possibly mixed) partial derivative.
@@ -215,7 +215,7 @@ def matrix_repr(expr, grid, acc):
         raise ValueError('Cannot calculate matrix representation of type %s' % type(expr).__name__)
 
 
-class Coordinate(Arithmetic):
+class Coordinate(Algebraic):
 
     def __init__(self, axis):
         assert axis >= 0 and axis == int(axis)

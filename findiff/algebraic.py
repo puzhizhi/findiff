@@ -1,12 +1,12 @@
-""" This module contains the classes for arithmetic operations like
+""" This module contains the classes for algebraic operations like
 addition and multiplication between objects like differential operators.
 """
 
 
-class Arithmetic:
-    """The base class of all arithmetic entities in findiff.
+class Algebraic:
+    """The base class of all algebraic entities in findiff.
 
-    Arithmetic entites are objects that can be composed to calculation graphs.
+    Algebraic entites are objects that can be composed to calculation graphs.
     """
 
     def __init__(self):
@@ -45,7 +45,7 @@ class Arithmetic:
         return self.mul_handler(-1, self)
 
 
-class Numberlike(Arithmetic):
+class Numberlike(Algebraic):
     """Wrapper class for all numberlike objects (numbers, arrays) that shall
        be used as arithmetic entities.
     """
@@ -64,7 +64,7 @@ class Numberlike(Arithmetic):
         return str(self.value)
 
 
-class Operation(Arithmetic):
+class Operation(Algebraic):
     """Base class for all binary operations between arithmetic entitites.
 
        This class is never instantiated by itself.

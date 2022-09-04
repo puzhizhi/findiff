@@ -4,7 +4,7 @@ import unittest
 import pytest
 from numpy.testing import assert_array_almost_equal, assert_array_equal
 
-from findiff.arithmetic import Numberlike, Add
+from findiff.algebraic import Numberlike, Add
 from findiff.deriv import PartialDerivative, matrix_repr, Coordinate, EquidistantGrid
 
 
