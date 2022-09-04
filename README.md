@@ -61,14 +61,15 @@ d_dx = Diff(0, 1)
 df_dx = d_dx(f, spacing=dx) 
 ```
 
-Similary, you can define partial derivative operators along different axes or of higher degree, for example:
+Similary, you can define partial derivative operators along different axes or of higher degree, for example 
+(```f``` is a *numpy* array of suitable shape):
 
-| Math                                                  | *findiff*                             |                                        |
-|-------------------------------------------------------|---------------------------------------|----------------------------------------|
-| <img src="docs/frontpage/d_dy.png" height="50px">     | ```FinDiff(1, dy, 1)```               | same as ``` FinDiff(1, dy)```          |
-| <img src="docs/frontpage/d4_dy4.png" height="50px">   | ```FinDiff(1, dy, 4)```               | any degree is possible                 |
-| <img src="docs/frontpage/d3_dx2dz.png" height="50px"> | ```FinDiff((0, dx, 2), (2, dz, 1))``` | mixed also possible, one tuple per axis |
-| <img src="docs/frontpage/d_dx_10.png" height="50px">  |  ```FinDiff(10, dx10, 1)```           | number of axes not limited             |
+| Math                                                  | *findiff* define                                                                 | *findiff* apply                    |
+|-------------------------------------------------------|----------------------------------------------------------------------------------|------------------------------------|
+| <img src="docs/frontpage/d_dy.png" height="50px">     | ```d = Diff(1, 1)``` <br> or simply <br> ```Diff(1)```                           | ```d(f, spacing=dy)```             |
+| <img src="docs/frontpage/d4_dy4.png" height="50px">   | ```d = Diff(1, 4)```  <br> any degree is possible                                | ```d(f, spacing=dy)```             |
+| <img src="docs/frontpage/d3_dx2dz.png" height="50px"> | ```d = Diff(0, 2) * Diff(2, 1)``` <br> or directly <br> ```Diff({0: 2, 2: 1})``` | ```d(f, spacing={0: dx, 2: dz})``` |
+| <img src="docs/frontpage/d_dx_10.png" height="50px">  | ```d = Diff(10)```      <br>number of axes not limited                           | ```d(f, spacing={10: dx_10})```    |
 
 We can also take linear combinations of derivative operators, for example:
 
@@ -77,7 +78,7 @@ We can also take linear combinations of derivative operators, for example:
 is
 
 ```python
-Coef(2*X) * FinDiff((0, dz, 2), (2, dz, 1)) + Coef(3*sin(Y)*Z**2) * FinDiff((0, dx, 1), (1, dy, 2))
+Coef(2*X) * Diff({0: 2, 2: 1}) + Coef(3*sin(Y)*Z**2) * Diff({0: 1, 1: 2})
 ```
 
 where `X, Y, Z` are *numpy* arrays with meshed grid points.
@@ -89,28 +90,29 @@ Chaining differential operators is also possible, e.g.
 can be written as
 
 ```python
-(FinDiff(0, dx) - FinDiff(1, dy)) * (FinDiff(0, dx) + FinDiff(1, dy))
+(Diff(0) - Diff(1)) * (Diff(0) + Diff(1))
 ```
 
 and
 
 ```python
-FinDiff(0, dx, 2) - FinDiff(1, dy, 2)
+Diff(0, 2) - Diff(1, 2)
 ```
 
-Of course, standard operators from vector calculus like gradient, divergence and curl are also available
+Of course, `Diff` obeys the product rule, if you define some operator with variable coefficients.
+
+Standard operators from vector calculus like gradient, divergence and curl are also available
 as shortcuts.
 
-More examples can be found [here](https://maroba.github.io/findiff-docs/source/examples.html) and in [this blog](https://medium.com/p/7e54132a73a3).
 
 ### Accuracy Control
 
-When constructing an instance of `FinDiff`, you can request the desired accuracy
+When applying an instance of `Diff`, you can request the desired accuracy
 order by setting the keyword argument `acc`. For example:
 
 ```
-d2_dx2 = findiff.FinDiff(0, dy, 2, acc=4)
-d2f_dx2 = d2_dx2(f)
+d2_dx2 = Diff(0, 2)
+d2f_dx2 = d2_dx2(f, acc=4, spacing=dx)
 ```
 
 If not specified, second order accuracy will be taken by default.
@@ -118,15 +120,14 @@ If not specified, second order accuracy will be taken by default.
 
 ## Finite Difference Coefficients
 
-Sometimes you may want to have the raw finite difference coefficients.
+Sometimes you may want to have the finite difference coefficients directly.
 These can be obtained for __any__ derivative and accuracy order
 using `findiff.coefficients(deriv, acc)`. For instance,
 
 ```python
-import findiff.legacy
 import findiff
 
-coefs = findiff.legacy.coefficients(deriv=3, acc=4, symbolic=True)
+coefs = findiff.coefficients(deriv=3, acc=4)
 ```
 
 gives
@@ -145,10 +146,9 @@ accuracy order, you can do this by setting the offset keyword
 argument:
 
 ```python
-import findiff.legacy
 import findiff
 
-coefs = findiff.legacy.coefficients(deriv=2, offsets=[-2, 1, 0, 2, 3, 4, 7], symbolic=True)
+coefs = findiff.coefficients(deriv=2, offsets=[-2, 1, 0, 2, 3, 4, 7])
 ```
 
 The resulting accuracy order is computed and part of the output:
@@ -159,14 +159,17 @@ The resulting accuracy order is computed and part of the output:
  'accuracy': 5}
 ```
 
-## Matrix Representation
+## Matrix Representations
 
 For a given _FinDiff_ differential operator, you can get the matrix representation 
 using the `matrix(shape)` method, e.g. for a small 1D grid of 10 points:
 
 ```python
-d2_dx2 = FinDiff(0, dx, 2)
-mat = d2_dx2.matrix((10,))  # this method returns a scipy sparse matrix
+from findiff import Diff, matrix_repr
+x = np.linspace(...)
+d2_dx2 = Diff(0, 2)
+
+mat = matrix_repr(d2_dx2, x.shape)  # this function returns a scipy sparse matrix
 print(mat.toarray())
 ``` 
 
@@ -182,6 +185,8 @@ has the output
  [ 0.  0.  0. -1.  4. -5.  2.]]
 ```
 
+The same works for more general differential operators. Just pass it to `matrix_repr` and it
+will return its matrix representation as sparse matrix. 
 
 ## Stencils
 
@@ -222,109 +227,15 @@ which returns
 {(0, 0): -2.0, (1, 1): 0.5, (-1, -1): 0.5, (1, -1): 0.5, (-1, 1): 0.5}
 ```
 
-## Partial Differential Equations
+## What about the old API?
 
-_findiff_ can be used to easily formulate and solve partial differential equation problems
+The release versions of *findiff* before version 1.0.0 had a different API than the one presented here. 
+However, the old API can still be used. It is available in the `findiff.legacy` subpackage now. For example:
 
-<p align="center">
-<img src="docs/frontpage/img-db2705be98d985e0.png" height="20"/>
-</p>
-
-where _L_ is a general linear differential operator.
- 
-In order to obtain a unique solution,  Dirichlet, Neumann or more general boundary conditions
-can be applied.
-
-### Boundary Value Problems
-
-#### Example 1: 1D forced harmonic oscillator with friction
-
-Find the solution of 
-
-<p align="center">
-<img src="docs/frontpage/img-66238f314ddd7bd8.png" alt="harmonicOscillator" height="40"/>
-</p>
-
-subject to the (Dirichlet) boundary conditions
-
-<p align="center">
-<img src="docs/frontpage/img-e840919a9f9079bd.png" alt="BCharmonicOscillator" height="20"/>
-</p>
-
-
-```python
-from findiff import FinDiff, Id, PDE
-
-shape = (300, )
-t = numpy.linspace(0, 10, shape[0])
-dt = t[1]-t[0]
-
-L = FinDiff(0, dt, 2) - FinDiff(0, dt, 1) + Coef(5) * Id()
-f = numpy.cos(2*t)
-
-bc = BoundaryConditions(shape)
-bc[0] = 0
-bc[-1] = 1
-
-pde = PDE(L, f, bc)
-u = pde.solve()
 ```
-
-Result:
-
-<p align="center">
-<img src="docs/frontpage/ho_bvp.jpg" alt="ResultHOBVP" height="300"/>
-</p>
-
-#### Example 2: 2D heat conduction
-
-A plate with temperature profile given on one edge and zero heat flux across the other
-edges, i.e.
-
-<p align="center">
-<img src="docs/frontpage/img-2b2de8b883ab262d.png" alt="heat2D" height="40"/>
-</p>
-
-with Dirichlet boundary condition
-
-<p align="center">
-<img src="docs/frontpage/img-a06bc52fe5a97f4a.png" height="40"/>
-</p>
-
-and Neumann boundary conditions
-
-<p align="center">
-<img src="docs/frontpage/img-79ec3ad29895a658.png" height="40"/>
-</p>
-<p align="center">
-<img src="docs/frontpage/img-79ec3ad29895a659.png" height="40"/>
-</p>
-
-
-```python
-shape = (100, 100)
-x, y = np.linspace(0, 1, shape[0]), np.linspace(0, 1, shape[1])
-dx, dy = x[1]-x[0], y[1]-y[0]
-X, Y = np.meshgrid(x, y, indexing='ij')
-
-L = FinDiff(0, dx, 2) + FinDiff(1, dy, 2)
-f = np.zeros(shape)
-
-bc = BoundaryConditions(shape)
-bc[1,:] = FinDiff(0, dx, 1), 0  # Neumann BC
-bc[-1,:] = 300. - 200*Y   # Dirichlet BC
-bc[:, 0] = 300.   # Dirichlet BC
-bc[1:-1, -1] = FinDiff(1, dy, 1), 0  # Neumann BC
-
-pde = PDE(L, f, bc)
-u = pde.solve()
+from findiff.legacy import FinDiff
+...
 ```
-
-Result:
-
-<p align="center">
-<img src="docs/frontpage/heat.png"/>
-</p>
 
 ## Citations
 
@@ -359,11 +270,36 @@ python setup.py develop
 
 ### Running tests
 
-From the console:
+Install test dependencies.
 
 ```
-python -m unittest discover test
+python -m pip install pytest
 ```
+
+Then run the test from the console (assuming you are in the project root directory):
+
+```
+python -m pytest test
+```
+
+### Build the Docs
+
+First install the documentation dependencies:
+
+```
+pip install -r docs/requirements.txt 
+```
+
+Then go to the `./docs` directory and trigger the build:
+
+```
+make html
+```
+
+The documentation website is then locally available with `docs/_build/html/index.html` as
+home page.
+
+### Contributing
 
 
 

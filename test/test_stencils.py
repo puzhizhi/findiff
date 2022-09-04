@@ -206,7 +206,7 @@ class TestStencilOperations(unittest.TestCase):
 
     def test_stencil_2d_laplacian_symbolic(self):
         offsets = [(0, 0), (1, 0), (-1, 0), (0, 1), (0, -1)]
-        stencil = Stencil(offsets, {(2, 0): 1, (0,2): 1}, spacings=['\Delta x', '\Delta y'], symbolic=True)
+        stencil = Stencil(offsets, {(2, 0): 1, (0,2): 1}, spacings=[r'\Delta x', r'\Delta y'], symbolic=True)
 
         dx, dy = Symbol(r'\Delta x'), Symbol(r'\Delta y')
 
@@ -229,7 +229,7 @@ class TestStencilOperations(unittest.TestCase):
         dx = Symbol(r'\Delta')
         stencil = Stencil(offsets, {(2, 0): 1, (0,2): 1}, spacings=dx, symbolic=True)
         expr, symbols = stencil.as_expression()
-        self.assertEqual(str(expr), 'u[i_0 + 1, i_1]/\Delta**2 + u[i_0 - 1, i_1]/\Delta**2 + u[i_0, i_1 + 1]/\Delta**2 + u[i_0, i_1 - 1]/\Delta**2 - 4*u[i_0, i_1]/\Delta**2')
+        self.assertEqual(str(expr), r'u[i_0 + 1, i_1]/\Delta**2 + u[i_0 - 1, i_1]/\Delta**2 + u[i_0, i_1 + 1]/\Delta**2 + u[i_0, i_1 - 1]/\Delta**2 - 4*u[i_0, i_1]/\Delta**2')
         self.assertEqual(symbols['spacings'], [dx]*2)
 
     def test_stencil_2d_laplacian_symbolic_as_expression_with_symbols(self):
@@ -237,7 +237,7 @@ class TestStencilOperations(unittest.TestCase):
         dx = Symbol(r'\Delta')
         stencil = Stencil(offsets, {(2, 0): 1, (0,2): 1}, spacings=dx, symbolic=True)
         actual, _ = stencil.as_expression('u', 'ij')
-        self.assertEqual(str(actual), 'u[i + 1, j]/\Delta**2 + u[i - 1, j]/\Delta**2 + u[i, j + 1]/\Delta**2 + u[i, j - 1]/\Delta**2 - 4*u[i, j]/\Delta**2')
+        self.assertEqual(str(actual), r'u[i + 1, j]/\Delta**2 + u[i - 1, j]/\Delta**2 + u[i, j + 1]/\Delta**2 + u[i, j - 1]/\Delta**2 - 4*u[i, j]/\Delta**2')
 
     def test_discretize_helmholtz_1d(self):
         stencil = Stencil(offsets=[-1, 0, 1], partials={(2,): 1}, spacings=[r'\Delta'], symbolic=True)
@@ -246,7 +246,7 @@ class TestStencilOperations(unittest.TestCase):
         n, = symbols['indices']
         u = symbols['function']
         helmholtz = d2_dx2 - u[n]
-        self.assertEqual('-u[n] + u[n + 1]/\Delta**2 + u[n - 1]/\Delta**2 - 2*u[n]/\Delta**2', str(helmholtz))
+        self.assertEqual(r'-u[n] + u[n + 1]/\Delta**2 + u[n - 1]/\Delta**2 - 2*u[n]/\Delta**2', str(helmholtz))
 
     def test_apply_stencil_should_fail_in_symbolic_mode(self):
         stencil = Stencil(offsets=[-1, 0, 1], partials={(2,): 1}, spacings=[r'\Delta'], symbolic=True)

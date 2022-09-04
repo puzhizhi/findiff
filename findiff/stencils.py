@@ -572,13 +572,13 @@ class Stencil1D:
         A = [([1 for _ in self.offsets])]
         for i in range(1, len(self.offsets)):
             A.append([j ** i for j in self.offsets])
-        return np.array(A, dtype='float')
+        return np.array(A)
 
     def _build_rhs(self):
         """The right hand side of the equation system matrix"""
         b = [0 for _ in self.offsets]
         b[self.deriv] = math.factorial(self.deriv)
-        return np.array(b, dtype='float')
+        return np.array(b)
 
 
 class SymmetricStencil1D(Stencil1D):

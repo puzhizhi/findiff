@@ -1,6 +1,7 @@
 import unittest
 
 import numpy as np
+import sympy
 from numpy.testing import assert_array_almost_equal
 
 from findiff import Diff
@@ -197,3 +198,29 @@ class TestDiff(unittest.TestCase):
         expected = 12 * X ** 2 + 2 * Y ** 2 - 12 * Y ** 2 - 2 * X ** 2
         assert_array_almost_equal(expected, actual1)
         assert_array_almost_equal(expected, actual2)
+
+
+class TestCoefficients(unittest.TestCase):
+
+    def test_can_be_called_with_acc_and_default_symbolics(self):
+        import findiff
+        out = findiff.coefficients(2, 2)
+        assert isinstance(out['center']['coefficients'][1], sympy.Integer)
+
+    def test_can_be_called_with_offsets(self):
+        import findiff
+        out = findiff.coefficients(2, offsets=[0, 1, 2, 3])
+        print(out)
+        some_coef = out['coefficients'][1]
+        assert isinstance(some_coef, sympy.Integer)
+        assert some_coef == -5
+
+    def test_must_specify_at_least_one(self):
+        import findiff
+        with self.assertRaises(ValueError):
+            findiff.coefficients(2)
+
+    def test_must_specify_exactly_one(self):
+        import findiff
+        with self.assertRaises(ValueError):
+            findiff.coefficients(2, acc=2, offsets=[-1, 0, 1])

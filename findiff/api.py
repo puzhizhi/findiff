@@ -5,6 +5,7 @@
 """
 import numbers
 
+import findiff.legacy
 from findiff.algebraic import Algebraic, Numberlike
 from findiff.deriv import PartialDerivative, EquidistantGrid, InvalidGrid, InvalidArraySize
 
@@ -141,3 +142,13 @@ class Coef(Numberlike):
     """Wrapper class for numbers or numpy arrays."""
     def __init__(self, value):
         super(Coef, self).__init__(value)
+
+
+def coefficients(deriv, acc=None, offsets=None):
+    both_set = acc and offsets
+    none_set = not (acc or offsets)
+    if both_set or none_set:
+        raise ValueError('Must specify either acc or offsets parameter.')
+    if acc:
+        return findiff.legacy.coefficients(deriv, acc=acc, symbolic=True)
+    return findiff.legacy.coefficients(deriv, offsets=offsets, symbolic=True)

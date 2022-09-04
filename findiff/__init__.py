@@ -15,5 +15,4 @@ __version__ = '1.0.0.rc1'
 from .stencils import Stencil
 from .symbolics import Equation
 
-from .api import Diff, Coef, EquidistantGrid
-
+from .api import Diff, Coef, EquidistantGrid, coefficients
