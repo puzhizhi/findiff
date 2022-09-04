@@ -301,6 +301,9 @@ home page.
 
 ### Contributing
 
+Please open an issue for any questions or problems that may arise using *findiff*. 
+If you make changes to the code or the documentation, work on your own fork and send me a pull request. 
+Before doing so, please make sure that all tests are running and your changes are covered by additional tests.
 
 
 
