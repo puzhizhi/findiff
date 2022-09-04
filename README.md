@@ -15,9 +15,9 @@ any number of dimensions.
 * Differentiate arrays of any number of dimensions along any axis with any desired accuracy order
 * Accurate treatment of grid boundary
 * Can handle arbitrary linear combinations of derivatives with constant and variable coefficients
+* Generate stencils of any shape
 * Fully vectorized for speed
 * Matrix representations of arbitrary linear differential operators
-* Solve partial differential equations with Dirichlet or Neumann boundary conditions
 
 
 ## Installation
@@ -34,26 +34,31 @@ You can find the documentation of the code including examples of application at 
 ## Taking Derivatives
 
 *findiff* allows to easily define derivative operators that you can apply to *numpy* arrays of any dimension.
-The syntax for a simple derivative operator is 
+The syntax for a simple derivative operator is simply 
 
 ```python
-FinDiff(axis, spacing, degree)
+Diff(axis, degree)
 ```
 
-where `spacing` is the separation of grid points between neighboring grid points. Consider the 1D case
+where `axis` is the axis along which to take the partial derivative and `degree` (which defaults to 1) is the
+degree of the derivative along that axis.
+
+Once defined, you can apply it to any *numpy* array of adequate shape. For instance, consider the 1D case
 with a first derivative <img src="docs/frontpage/d_dx.png" height="24"> along the only axis (0):
 
 ```
 import numpy as np
+from findiff import Diff
 
-x = np.linspace(0, 1, 100)
+x = np.linspace(0, 1, 101)
+dx = x[1] - x[0]
 f = np.sin(x)  # as an example
 
 # Define the derivative:
-d_dx = FinDiff(0, dx, 1)
+d_dx = Diff(0, 1)
 
 # Apply it:
-df_dx = d_dx(f) 
+df_dx = d_dx(f, spacing=dx) 
 ```
 
 Similary, you can define partial derivative operators along different axes or of higher degree, for example:

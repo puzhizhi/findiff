@@ -309,3 +309,7 @@ class FinDiffException(Exception):
 
 class InvalidGrid(FinDiffException):
     pass
+
+
+class InvalidArraySize(FinDiffException):
+    pass

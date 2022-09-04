@@ -675,32 +675,6 @@ class TestPDE(unittest.TestCase):
         actual = pde.solve()
         np.testing.assert_array_almost_equal(expected, actual, decimal=4)
 
-    # This simple case in not running yet!
-    @unittest.skip
-    def test_2d_inhom_var_coefs_with_identity_all_dirichlet(self):
-
-        shape = (5, 5)
-        (x, y), (dx, dy), (X, Y) = make_grid(shape, edges=[(-1, 1), (-1, 1)])
-
-        expected = X**3 + Y**3 + X*Y + 1
-
-        #L = Coef(3*X) * FinDiff(0, dx, 2) + Coef(2*Y) * FinDiff((0, dx, 1), (1, dy, 1)) + FinDiff(1, dy, 2) + Coef(5*X*Y) * Identity()
-        L = Coef(5*X*Y) * FinDiff(0, dx, 2) #Identity()
-        #f = 18 * X**2 + 8*Y + 5*X*Y*expected
-
-        mat = L.matrix(shape)
-        print(mat)
-
-        bc = BoundaryConditions(shape)
-        bc[0, :] = expected
-        bc[-1, :] = expected
-        bc[:, 0] = expected
-        bc[:, -1] = expected
-
-        pde = PDE(L, f, bc)
-        actual = pde.solve()
-        np.testing.assert_array_almost_equal(expected, actual, decimal=4)
-
 
 def make_grid(shape, edges):
 

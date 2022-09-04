@@ -5,7 +5,7 @@ from numpy.testing import assert_array_almost_equal
 
 from findiff import Diff
 from findiff import Coef
-from findiff.deriv import InvalidGrid
+from findiff.deriv import InvalidGrid, FinDiffException, InvalidArraySize
 
 
 class TestDiff(unittest.TestCase):
@@ -67,6 +67,19 @@ class TestDiff(unittest.TestCase):
 
         assert max_err_acc2 > 1000 * max_err_acc4
 
+    def test_apply_diff_with_single_spacing_defaults_to_same_for_all_axes(self):
+
+        x = np.linspace(0, 1, 101)
+        dx = x[1] - x[0]
+        f = np.sin(x)
+
+        # Define the derivative:
+        d_dx = Diff(0, 1)
+
+
+        df_dx = d_dx(f, acc=4, spacing=dx)
+        assert_array_almost_equal(np.cos(x), df_dx)
+
     def test_diff_constructor_with_invalid_args_raises_exception(self):
         with self.assertRaises(ValueError):
             Diff(1, 2, 3)
@@ -94,15 +107,21 @@ class TestDiff(unittest.TestCase):
         with self.assertRaises(InvalidGrid):
             D(np.ones((10, 10)))
 
-    def test_applying_diff_with_nondict_spacing_raises_exception(self):
+    def test_applying_diff_with_invalid_nondict_spacing_raises_exception(self):
         D = Diff(1, 2)
         with self.assertRaises(InvalidGrid):
-            D(np.ones((10, 10)), spacing=0.1)
+            D(np.ones((10, 10)), spacing=-0.1)
 
     def test_applying_diff_with_nonpositive_spacing_raises_exception(self):
         D = Diff(1, 2)
         with self.assertRaises(InvalidGrid):
             D(np.ones((10, 10)), spacing={1: -0.1})
+
+    def test_apply_diff_to_too_small_array_raises_exception(self):
+        x = np.linspace(0, 1, 101)
+        D = Diff(10, 1)
+        with self.assertRaises(InvalidArraySize):
+            D(x**2, spacing=0.01)
 
     def test_single_diff_along_axis1_raises_exception_when_no_spacing_defined_along_axis(self):
         f = np.ones((10, 10))

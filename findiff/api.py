@@ -6,7 +6,7 @@
 import numbers
 
 from findiff.algebraic import Algebraic, Numberlike
-from findiff.deriv import PartialDerivative, EquidistantGrid, InvalidGrid
+from findiff.deriv import PartialDerivative, EquidistantGrid, InvalidGrid, InvalidArraySize
 
 __all__ = ['Diff', 'Coef']
 
@@ -92,11 +92,23 @@ class Diff(Algebraic):
 
         For details, see help on __call__.
         """
+
+        # make sure the array shape is big enough
+        max_axis = max(self.partial.axes)
+        if max_axis >= f.ndim:
+            raise InvalidArraySize('Array has not enough dimensions for given derivative operator.'
+                                   'Has %d but needs at least %d' % (f.ndim, max_axis))
+
+        # require valid spacing
         if 'spacing' in kwargs:
             spacing = kwargs['spacing']
 
             if not isinstance(spacing, dict):
-                raise InvalidGrid('spacing keyword argument must be a dict.')
+                is_positive_number = isinstance(spacing, numbers.Real) and spacing > 0
+                if is_positive_number:
+                    spacing = {axis: spacing for axis in range(f.ndim)}
+                else:
+                    raise InvalidGrid('spacing keyword argument must be a dict or single number.')
 
             # Assert that spacings along all axes are defined, where derivatives need:
             for axis in self.partial.axes:
@@ -108,6 +120,7 @@ class Diff(Algebraic):
         else:
             raise InvalidGrid('No spacing defined when applying Diff.')
 
+        # accuracy is optional
         if 'acc' in kwargs:
             acc = kwargs['acc']
         else:
