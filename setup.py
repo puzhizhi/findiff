@@ -61,7 +61,7 @@ setup(
         'Programming Language :: Python :: 3.9',
     ],
     keywords=['finite-differences', 'numerical-derivatives', 'scientific-computing'],
-    packages=find_packages(exclude=("tests",)),
+    packages=find_packages(exclude=("test",)),
     package_dir={name: name},
     include_package_data=True,
     install_requires=['numpy', 'scipy', 'sympy'],
