@@ -191,7 +191,7 @@ class PartialDerivative(Algebraic):
         return res
 
 
-def matrix_repr(expr, grid, acc):
+def matrix_repr(expr, acc, grid):
     """Returns the matrix representation of a given differential operator an a grid."""
 
     if isinstance(expr, PartialDerivative):
@@ -208,8 +208,8 @@ def matrix_repr(expr, grid, acc):
         value = grid.meshed_coords[expr.axis].reshape(-1)
         return scipy.sparse.diags(np.full((siz,), fill_value=value))
     elif isinstance(expr, Operation):
-        left_result = matrix_repr(expr.left, grid, acc)
-        right_result = matrix_repr(expr.right, grid, acc)
+        left_result = matrix_repr(expr.left, acc, grid)
+        right_result = matrix_repr(expr.right, acc, grid)
         return expr.operation(left_result, right_result)
     else:
         raise ValueError('Cannot calculate matrix representation of type %s' % type(expr).__name__)

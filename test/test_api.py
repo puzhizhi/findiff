@@ -204,23 +204,19 @@ class TestCoefficients(unittest.TestCase):
 
     def test_can_be_called_with_acc_and_default_symbolics(self):
         import findiff
-        out = findiff.coefficients(2, 2)
+        out = findiff.coefficients(2, 2, symbolic=True)
         assert isinstance(out['center']['coefficients'][1], sympy.Integer)
 
     def test_can_be_called_with_offsets(self):
         import findiff
-        out = findiff.coefficients(2, offsets=[0, 1, 2, 3])
+        out = findiff.coefficients(2, offsets=[0, 1, 2, 3], symbolic=True)
         print(out)
         some_coef = out['coefficients'][1]
         assert isinstance(some_coef, sympy.Integer)
         assert some_coef == -5
 
-    def test_must_specify_at_least_one(self):
-        import findiff
-        with self.assertRaises(ValueError):
-            findiff.coefficients(2)
-
     def test_must_specify_exactly_one(self):
         import findiff
         with self.assertRaises(ValueError):
             findiff.coefficients(2, acc=2, offsets=[-1, 0, 1])
+

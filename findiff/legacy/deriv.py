@@ -1,4 +1,5 @@
 import numpy as np
+import scipy.sparse
 
 from findiff.stencils import Stencil
 from ..algebraic import Algebraic, Numberlike, Add, Mul, Operation
@@ -74,6 +75,8 @@ class FinDiff(Algebraic):
 
 
         """
+
+    legacy = True
 
     def __init__(self, *args, **kwargs):
 
@@ -154,6 +157,8 @@ class DirtyMixin:
        also on Mul and Add operators.
     """
 
+    legacy = True
+
     def __init__(self):
         self.add_handler = DirtyAdd
         self.mul_handler = DirtyMul
@@ -165,7 +170,7 @@ class DirtyMixin:
             return self.operation(left, right)
         elif not isinstance(self, FinDiff):
             grid = EquidistantGrid.from_shape_and_spacings(shape, {})
-            return matrix_repr(self, grid, 2)
+            return matrix_repr(self, 2, grid)
         return self.matrix(shape)
 
     def stencil(self, shape):
@@ -186,11 +191,17 @@ class Coef(DirtyNumberlike):
 
 class Identity(DirtyNumberlike):
 
+    legacy = True
+
     def __init__(self):
         super(Identity, self).__init__(1)
 
     def __call__(self, f, *args, **kwargs):
         return f
+
+    def matrix(self, shape):
+        n = np.prod(shape)
+        return scipy.sparse.diags(np.ones(n))
 
 
 class DirtyAdd(DirtyMixin, Add):
@@ -320,6 +331,8 @@ class VectorOperator:
        Shall not be instantiated directly, but through the child classes.
     """
 
+    legacy = True
+
     def __init__(self, **kwargs):
         """Constructor for the VectorOperator base class.
 
@@ -377,6 +390,8 @@ class Gradient(VectorOperator):
                      accuracy order, must be positive integer, default is 2
     """
 
+    legacy = True
+
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
 
@@ -431,6 +446,8 @@ class Divergence(VectorOperator):
 
     """
 
+    legacy = True
+
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
 
@@ -484,6 +501,8 @@ class Curl(VectorOperator):
 
 
     """
+
+    legacy = True
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
@@ -542,6 +561,8 @@ class Laplacian(object):
         """
 
     """A representation of the Laplace operator in arbitrary dimensions using finite difference schemes"""
+
+    legacy = True
 
     def __init__(self, h=[1.], acc=2):
         h = wrap_in_ndarray(h)

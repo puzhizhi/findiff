@@ -144,11 +144,20 @@ class Coef(Numberlike):
         super(Coef, self).__init__(value)
 
 
-def coefficients(deriv, acc=None, offsets=None):
+class Identity(Coef):
+    def __init__(self):
+        super(Identity, self).__init__(1)
+
+
+def coefficients(deriv, acc=None, offsets=None, symbolic=False):
     both_set = acc and offsets
     none_set = not (acc or offsets)
     if both_set or none_set:
         raise ValueError('Must specify either acc or offsets parameter.')
     if acc:
-        return findiff.legacy.coefficients(deriv, acc=acc, symbolic=True)
+        return findiff.legacy.coefficients(deriv, acc=acc, symbolic=symbolic)
     return findiff.legacy.coefficients(deriv, offsets=offsets, symbolic=True)
+
+
+def matrix_repr(expr, shape=None, spacing=None):
+    pass

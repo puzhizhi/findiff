@@ -2,7 +2,7 @@ import sys
 sys.path.insert(1, '..')
 
 import unittest
-from findiff.legacy import coefficients
+from findiff import coefficients
 from findiff.legacy.deriv import calc_coefs
 
 import numpy as np

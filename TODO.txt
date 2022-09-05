@@ -1,0 +1,3 @@
+- the matrix_repr needs a better API so that the uses does not have to generate a grid
+- Stencil needs a more comfortable constructor, and: stencil.values is not a good name.
+

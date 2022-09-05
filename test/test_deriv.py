@@ -230,7 +230,7 @@ class TestMatrixRepr(unittest.TestCase):
     def test_matrix_repr_of_numberlike(self):
         nl = Numberlike(3)
         grid = EquidistantGrid((0, 1, 11))
-        actual = matrix_repr(nl, grid, acc=2)
+        actual = matrix_repr(nl, acc=2, grid=grid)
         assert actual.shape == (11, 11)
         assert_array_equal(actual.toarray(), 3 * np.eye(11))
 
@@ -238,7 +238,7 @@ class TestMatrixRepr(unittest.TestCase):
         nl1 = Numberlike(3)
         nl2 = Numberlike(4)
         grid = EquidistantGrid((0, 1, 11))
-        actual = matrix_repr(Add(nl1, nl2), grid, acc=2)
+        actual = matrix_repr(Add(nl1, nl2), acc=2, grid=grid)
         assert actual.shape == (11, 11)
         assert_array_equal(actual.toarray(), 7 * np.eye(11))
 
@@ -246,7 +246,7 @@ class TestMatrixRepr(unittest.TestCase):
 
         grid = EquidistantGrid((0, 1, 11))
         X = Numberlike(grid.meshed_coords[0])
-        actual = matrix_repr(X, grid, acc=2)
+        actual = matrix_repr(X, acc=2, grid=grid)
         assert actual.shape == (11, 11)
         assert_array_equal(actual.toarray(), X.value * np.eye(11))
 
@@ -254,7 +254,7 @@ class TestMatrixRepr(unittest.TestCase):
 
         grid = EquidistantGrid((0.1, 4, 5), (0.1, 4, 5))
         X = Numberlike(grid.meshed_coords[0])
-        actual = matrix_repr(X, grid, acc=2)
+        actual = matrix_repr(X, acc=2, grid=grid)
         assert actual.shape == (25, 25)
 
         expected = grid.meshed_coords[0].reshape(-1)
@@ -266,7 +266,7 @@ class TestMatrixRepr(unittest.TestCase):
     def test_matrix_repr_of_normal_partial(self):
         grid = EquidistantGrid((0, 5, 6))
         d2_dx2 = PartialDerivative({0: 2})
-        actual = matrix_repr(d2_dx2, grid, acc=2)
+        actual = matrix_repr(d2_dx2, acc=2, grid=grid)
         expected = [
             [2, -5, 4, -1, 0, 0],
             [1, -2, 1, 0, 0, 0],
@@ -278,7 +278,7 @@ class TestMatrixRepr(unittest.TestCase):
         assert_array_almost_equal(actual.toarray(), expected)
 
     def apply_with_matrix_repr(self, diff_op, f, grid, acc):
-        matrix = matrix_repr(diff_op, grid, acc=2)
+        matrix = matrix_repr(diff_op, acc=2, grid=grid)
         return matrix.dot(f.reshape(-1)).reshape(grid.shape)
 
     def test_matrix_repr_of_mixed_partial(self):
