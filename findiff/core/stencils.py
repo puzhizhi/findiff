@@ -6,8 +6,8 @@ import numpy as np
 import sympy
 from sympy import Symbol, Matrix, IndexedBase, Add, Mul, Expr
 
-from .symbolics.deriv import DerivativeSymbol
-from .utils import to_long_index, to_index_tuple
+from findiff.symbolics.deriv import DerivativeSymbol
+from findiff.utils import to_long_index, to_index_tuple
 
 
 class StencilSet:

@@ -19,8 +19,9 @@ from .api import Diff, EquidistantGrid
 from .legacy import FinDiff, Identity, coefficients
 from .legacy import Gradient, Divergence, Laplacian, Curl
 from .legacy import PDE, BoundaryConditions
-from .stencils import Stencil
+from findiff.core.stencils import Stencil
 from .symbolics import Equation
+from .core.deriv import InvalidGrid, InvalidArraySize
 
 #
 # Conflicting names between v0 and v1:

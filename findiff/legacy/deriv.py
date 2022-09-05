@@ -1,10 +1,10 @@
 import numpy as np
 import scipy.sparse
 
-from findiff.stencils import Stencil
-from ..algebraic import Algebraic, Numberlike, Add, Mul, Operation
-from ..deriv import PartialDerivative, matrix_repr, EquidistantGrid
-from ..stencils import StencilSet, SymmetricStencil1D, ForwardStencil1D, BackwardStencil1D
+from findiff.core.stencils import Stencil
+from findiff.core.algebraic import Algebraic, Numberlike, Add, Mul, Operation
+from findiff.core.deriv import PartialDerivative, matrix_repr, EquidistantGrid
+from findiff.core.stencils import StencilSet, SymmetricStencil1D, ForwardStencil1D, BackwardStencil1D
 from .pde import BoundaryConditions
 
 __all__ = [

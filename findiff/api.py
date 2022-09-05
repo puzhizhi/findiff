@@ -6,8 +6,8 @@
 import numbers
 
 import findiff.legacy
-from findiff.algebraic import Algebraic, Numberlike
-from findiff.deriv import PartialDerivative, EquidistantGrid, InvalidGrid, InvalidArraySize
+from findiff.core.algebraic import Algebraic, Numberlike
+from findiff.core.deriv import PartialDerivative, EquidistantGrid, InvalidGrid, InvalidArraySize
 
 __all__ = ['Diff', 'Coef']
 

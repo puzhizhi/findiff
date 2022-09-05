@@ -4,8 +4,8 @@ import unittest
 import pytest
 from numpy.testing import assert_array_almost_equal, assert_array_equal
 
-from findiff.algebraic import Numberlike, Add
-from findiff.deriv import PartialDerivative, matrix_repr, Coordinate, EquidistantGrid
+from findiff.core.algebraic import Numberlike, Add
+from findiff.core.deriv import PartialDerivative, matrix_repr, Coordinate, EquidistantGrid
 
 
 class TestsPartialDerivative(unittest.TestCase):

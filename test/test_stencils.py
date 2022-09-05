@@ -3,10 +3,11 @@ from itertools import product
 
 import numpy as np
 from numpy.testing import assert_array_almost_equal
-from sympy import Rational, symbols, Symbol, simplify, expand
+from sympy import Rational, Symbol, simplify
 
 from findiff import Identity, FinDiff
-from findiff.stencils import Stencil, Stencil1D, SymmetricStencil1D, ForwardStencil1D, BackwardStencil1D
+from findiff import Stencil
+from findiff.core.stencils import Stencil1D, SymmetricStencil1D, ForwardStencil1D, BackwardStencil1D
 from findiff.symbolics.deriv import DerivativeSymbol
 
 

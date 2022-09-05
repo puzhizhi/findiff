@@ -6,7 +6,7 @@ from numpy.testing import assert_array_almost_equal
 
 from findiff import Diff
 from findiff import Coef
-from findiff.deriv import InvalidGrid, FinDiffException, InvalidArraySize
+from findiff import InvalidGrid, InvalidArraySize
 
 
 class TestDiff(unittest.TestCase):

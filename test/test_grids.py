@@ -2,7 +2,7 @@ import unittest
 
 from numpy.testing import assert_array_almost_equal
 
-from findiff.deriv import EquidistantGrid
+from findiff.core.deriv import EquidistantGrid
 
 
 class TestEquidistantGrid(unittest.TestCase):

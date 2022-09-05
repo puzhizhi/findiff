@@ -8,8 +8,6 @@ import numpy as np
 import scipy.sparse as sparse
 from scipy.sparse.linalg import spsolve
 
-from findiff.deriv import matrix_repr
-
 
 class PDE(object):
     """

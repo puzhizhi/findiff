@@ -5,7 +5,7 @@ import numpy as np
 from numpy.testing import assert_array_almost_equal, assert_array_equal
 
 from findiff import FinDiff, Coef, Identity, BoundaryConditions, PDE
-from findiff.deriv import matrix_repr, PartialDerivative, EquidistantGrid
+from findiff.core.deriv import matrix_repr, PartialDerivative, EquidistantGrid
 
 
 class TestFinDiff(unittest.TestCase):

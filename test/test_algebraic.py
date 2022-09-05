@@ -1,7 +1,7 @@
 import unittest
 
-from findiff.deriv import PartialDerivative, Coordinate
-from findiff.algebraic import Mul
+from findiff.core.deriv import PartialDerivative
+from findiff.core.algebraic import Mul
 
 
 class TestMul(unittest.TestCase):
