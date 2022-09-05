@@ -12,7 +12,7 @@ import numbers
 import numpy as np
 import scipy
 
-from findiff.algebraic import Algebraic, Mul, Add, Numberlike, Operation
+from findiff.core.algebraic import Algebraic, Mul, Numberlike, Operation
 from findiff.stencils import StencilStore, SymmetricStencil1D, ForwardStencil1D, BackwardStencil1D
 from findiff.utils import long_indices_as_ndarray, to_long_index
 
