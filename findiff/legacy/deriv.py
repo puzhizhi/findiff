@@ -1,3 +1,5 @@
+import logging
+
 import numpy as np
 import scipy.sparse
 
@@ -7,9 +9,21 @@ from findiff.core.deriv import PartialDerivative, matrix_repr, EquidistantGrid
 from findiff.core.stencils import StencilSet, SymmetricStencil1D, ForwardStencil1D, BackwardStencil1D
 from .pde import BoundaryConditions
 
+
 __all__ = [
     'FinDiff', 'Coef', 'Identity', 'coefficients', 'Gradient', 'Divergence', 'Curl', 'Laplacian'
 ]
+
+logger = logging.getLogger(__name__)
+
+
+def deprecation_warning(what):
+    from findiff import __deprecation_warning__
+    msg = '[findiff deprecation warning] '
+    msg += what + ' is deprecated and may be removed in future versions.'
+    ' To silence this message, set findiff.__deprecation_warning__ = False.'
+    if __deprecation_warning__:
+        logger.warning(msg)
 
 
 class FinDiff(Algebraic):
@@ -79,6 +93,8 @@ class FinDiff(Algebraic):
     legacy = True
 
     def __init__(self, *args, **kwargs):
+
+        deprecation_warning('FinDiff')
 
         super(FinDiff, self).__init__()
         self.add_handler = DirtyAdd
@@ -164,6 +180,7 @@ class DirtyMixin:
         self.mul_handler = DirtyMul
 
     def matrix(self, shape):
+        deprecation_warning('Method "matrix"')
         if isinstance(self, Operation):
             left = self.left.matrix(shape)
             right = self.right.matrix(shape)
@@ -174,6 +191,7 @@ class DirtyMixin:
         return self.matrix(shape)
 
     def stencil(self, shape):
+        deprecation_warning('Method "stencil"')
         return StencilSet(self, shape)
 
 
@@ -242,7 +260,8 @@ class PDE:
                 the boundary conditions for the PDE
 
         """
-        from findiff.pde import PDE as NewPDE
+        deprecation_warning('findiff.PDE')
+        from findiff.legacy.pde import PDE as NewPDE
         self.pde = NewPDE(lhs, rhs, bcs, lhs.grid)
 
     def solve(self):
@@ -277,6 +296,8 @@ def coefficients(deriv, acc=None, offsets=None, symbolic=False):
 
     :return: dict with the finite difference coefficients and corresponding offsets
     """
+
+    deprecation_warning('Function "coefficients"')
 
     _validate_deriv(deriv)
 
@@ -393,6 +414,7 @@ class Gradient(VectorOperator):
     legacy = True
 
     def __init__(self, **kwargs):
+        deprecation_warning('Gradient')
         super().__init__(**kwargs)
 
     def __call__(self, f):
@@ -449,6 +471,7 @@ class Divergence(VectorOperator):
     legacy = True
 
     def __init__(self, **kwargs):
+        deprecation_warning(self.__class__.__name__)
         super().__init__(**kwargs)
 
     def __call__(self, f):
@@ -505,6 +528,7 @@ class Curl(VectorOperator):
     legacy = True
 
     def __init__(self, **kwargs):
+        deprecation_warning(self.__class__.__name__)
         super().__init__(**kwargs)
 
         if self.ndims != 3:
@@ -565,6 +589,7 @@ class Laplacian(object):
     legacy = True
 
     def __init__(self, h=[1.], acc=2):
+        deprecation_warning(self.__class__.__name__)
         h = wrap_in_ndarray(h)
 
         self._parts = [FinDiff((k, h[k], 2), acc=acc) for k in range(len(h))]

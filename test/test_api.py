@@ -5,7 +5,7 @@ import sympy
 from numpy.testing import assert_array_almost_equal
 
 from findiff import Diff
-from findiff import Coef
+from findiff.conflicts import Coef
 from findiff import InvalidGrid, InvalidArraySize
 
 

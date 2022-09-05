@@ -4,7 +4,8 @@ import numpy as np
 
 from numpy.testing import assert_array_almost_equal, assert_array_equal
 
-from findiff import FinDiff, Coef, Identity, BoundaryConditions, PDE
+from findiff import FinDiff, BoundaryConditions, PDE
+from findiff.conflicts import Coef, Identity
 from findiff.core.deriv import matrix_repr, PartialDerivative, EquidistantGrid
 
 

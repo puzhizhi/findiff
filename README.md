@@ -230,7 +230,8 @@ which returns
 ## What about the old API?
 
 The release versions of *findiff* before version 1.0.0 had a different API than the one presented here. 
-However, the old API can still be used. It is available in the `findiff.legacy` subpackage now. For example:
+However, the old API can still be used. Calling the old API will report a deprecation warning which
+can be silenced by setting `findiff.__deprecation_warning__ = False`.
 
 ```
 from findiff.legacy import FinDiff
