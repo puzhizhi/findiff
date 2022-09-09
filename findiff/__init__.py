@@ -17,9 +17,9 @@ import findiff.legacy as legacy
 import findiff.api as api
 
 from .api import Diff, EquidistantGrid
-from findiff.core.stencils import Stencil
+from .core import Stencil, InvalidGrid, InvalidArraySize
 from .symbolics import Equation
-from .core.deriv import InvalidGrid, InvalidArraySize
+
 
 # Legacy, yields deprecation warning:
 from .legacy import FinDiff, Identity, coefficients

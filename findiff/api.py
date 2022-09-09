@@ -1,7 +1,11 @@
-""" This module contains classes that are intended for user interaction.
+""" This module contains classes and functions that are intended for usage by
+    the findiff package user.
 
     The most important class is `Diff` which allows for a convenient way
     to define partial derivatives and compose general differential operators.
+
+    When adding classes or functions, validate the input carefully, as the
+    classes in findiff.core mostly assume valid input.
 """
 import numbers
 
@@ -10,7 +14,7 @@ from findiff import core
 from findiff.core.algebraic import Algebraic, Numberlike, Operation
 from findiff.core.deriv import PartialDerivative, EquidistantGrid, InvalidGrid, InvalidArraySize
 
-__all__ = ['Diff', 'Coef']
+__all__ = ['Diff', 'Coef', 'matrix_repr', 'Identity', 'coefficients']
 
 
 class Diff(Algebraic):
@@ -97,26 +101,13 @@ class Diff(Algebraic):
 
         # make sure the array shape is big enough
         max_axis = max(self.partial.axes)
+
         if max_axis >= f.ndim:
             raise InvalidArraySize('Array has not enough dimensions for given derivative operator.'
                                    'Has %d but needs at least %d' % (f.ndim, max_axis))
 
-        # require valid spacings
         if 'spacings' in kwargs:
-            spacings = kwargs['spacings']
-
-            if not isinstance(spacings, dict):
-                is_positive_number = isinstance(spacings, numbers.Real) and spacings > 0
-                if is_positive_number:
-                    spacings = {axis: spacings for axis in range(f.ndim)}
-                else:
-                    raise InvalidGrid('spacings keyword argument must be a dict or single number.')
-
-            # Assert that spacings along all axes are defined, where derivatives need:
-            for axis in self.partial.axes:
-                if axis not in spacings:
-                    raise InvalidGrid('No spacings along axis %d defined.' % axis)
-
+            spacings = self._validate_and_convert_spacings(f.ndim, kwargs['spacings'])
             ndims_effective = max(spacings.keys()) + 1
             grid = EquidistantGrid.from_spacings(ndims_effective, spacings)
         else:
@@ -130,6 +121,20 @@ class Diff(Algebraic):
 
         return self.partial.apply(f, grid, acc)
 
+    def _validate_and_convert_spacings(self, ndim, spacings):
+        if not isinstance(spacings, dict):
+            is_positive_number = isinstance(spacings, numbers.Real) and spacings > 0
+            if is_positive_number:
+
+                spacings = {axis: spacings for axis in range(ndim)}
+            else:
+                raise InvalidGrid('spacings keyword argument must be a dict or single number.')
+        # Assert that spacings along all axes are defined, where derivatives need:
+        for axis in self.partial.axes:
+            if axis not in spacings:
+                raise InvalidGrid('No spacings along axis %d defined.' % axis)
+        return spacings
+
     def _validate_degrees_dict(self, degrees):
         assert isinstance(degrees, dict)
         for axis, degree in degrees.items():
@@ -137,6 +142,41 @@ class Diff(Algebraic):
                 raise ValueError('Axis must be positive integer')
             if not isinstance(degree, numbers.Integral) or degree <= 0:
                 raise ValueError('Degree must be positive integer')
+
+
+def matrix_repr(expr, shape=None, spacings=None, acc=2):
+    """Returns the matrix representation of a given differential operator.
+
+    Parameters
+    ----------
+    expr :  Algebraic
+        Algebraic expression of differential operators.
+    shape : tuple of ints
+        Shape of the grid.
+    spacings : float or dict
+        Grid spacings. If only one number is given, this spacing is applied to all axes.
+        If a dict is given (key = axis, value = spacing), all axes must be specified.
+    acc : positive even int
+        The accuracy order of the differential operator.
+
+    Returns
+    -------
+    out : scipy.sparse.csr_matrix
+        The matrix representation as SciPy sparse matrix.
+    """
+
+    _validate_shape(shape)
+    spacings = _validate_and_convert_spacings(spacings, shape)
+    _validate_acc(acc)
+
+    grid = EquidistantGrid.from_shape_and_spacings(shape, spacings)
+
+    if isinstance(expr, Operation):
+        left_result = matrix_repr(expr.left, shape, spacings, acc)
+        right_result = matrix_repr(expr.right, shape, spacings, acc)
+        return expr.operation(left_result, right_result)
+    else:
+        return core.deriv.matrix_repr(expr.partial, acc, grid)
 
 
 class Coef(Numberlike):
@@ -159,20 +199,6 @@ def coefficients(deriv, acc=None, offsets=None, symbolic=False):
     if acc:
         return findiff.legacy.coefficients(deriv, acc=acc, symbolic=symbolic)
     return findiff.legacy.coefficients(deriv, offsets=offsets, symbolic=True)
-
-
-def matrix_repr(expr, shape=None, spacings=None, acc=2):
-    _validate_shape(shape)
-    spacings = _validate_and_convert_spacings(spacings, shape)
-    _validate_acc(acc)
-
-    grid = EquidistantGrid.from_shape_and_spacings(shape, spacings)
-    if isinstance(expr, Operation):
-        left_result = matrix_repr(expr.left, shape, spacings, acc)
-        right_result = matrix_repr(expr.right, shape, spacings, acc)
-        return expr.operation(left_result, right_result)
-    else:
-        return core.deriv.matrix_repr(expr.partial, acc, grid)
 
 
 def _validate_shape(shape):
