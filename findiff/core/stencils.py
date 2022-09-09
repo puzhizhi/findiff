@@ -610,5 +610,5 @@ class BackwardStencil1D(Stencil1D):
         num_coefs = 2 * math.floor((deriv + 1) / 2) - 1 + acc
         if deriv % 2 == 0:
             num_coefs = num_coefs + 1
-        offsets = -np.array(list(range(0, num_coefs)))
+        offsets = - np.array(list(range(0, num_coefs)))
         super(BackwardStencil1D, self).__init__(deriv, offsets[::-1], dx, symbolic)

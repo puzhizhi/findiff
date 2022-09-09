@@ -6,7 +6,8 @@
 import numbers
 
 import findiff.legacy
-from findiff.core.algebraic import Algebraic, Numberlike
+from findiff import core
+from findiff.core.algebraic import Algebraic, Numberlike, Operation
 from findiff.core.deriv import PartialDerivative, EquidistantGrid, InvalidGrid, InvalidArraySize
 
 __all__ = ['Diff', 'Coef']
@@ -66,7 +67,7 @@ class Diff(Algebraic):
 
             Keywords:
 
-                spacing : dict
+                spacings : dict
                     Dictionary specifying the grid spacing (key=axis, value=spacing).
 
                 acc :  even int > 0, optional, default: 2
@@ -100,26 +101,26 @@ class Diff(Algebraic):
             raise InvalidArraySize('Array has not enough dimensions for given derivative operator.'
                                    'Has %d but needs at least %d' % (f.ndim, max_axis))
 
-        # require valid spacing
-        if 'spacing' in kwargs:
-            spacing = kwargs['spacing']
+        # require valid spacings
+        if 'spacings' in kwargs:
+            spacings = kwargs['spacings']
 
-            if not isinstance(spacing, dict):
-                is_positive_number = isinstance(spacing, numbers.Real) and spacing > 0
+            if not isinstance(spacings, dict):
+                is_positive_number = isinstance(spacings, numbers.Real) and spacings > 0
                 if is_positive_number:
-                    spacing = {axis: spacing for axis in range(f.ndim)}
+                    spacings = {axis: spacings for axis in range(f.ndim)}
                 else:
-                    raise InvalidGrid('spacing keyword argument must be a dict or single number.')
+                    raise InvalidGrid('spacings keyword argument must be a dict or single number.')
 
             # Assert that spacings along all axes are defined, where derivatives need:
             for axis in self.partial.axes:
-                if axis not in spacing:
-                    raise InvalidGrid('No spacing along axis %d defined.' % axis)
+                if axis not in spacings:
+                    raise InvalidGrid('No spacings along axis %d defined.' % axis)
 
-            ndims_effective = max(spacing.keys()) + 1
-            grid = EquidistantGrid.from_spacings(ndims_effective, spacing)
+            ndims_effective = max(spacings.keys()) + 1
+            grid = EquidistantGrid.from_spacings(ndims_effective, spacings)
         else:
-            raise InvalidGrid('No spacing defined when applying Diff.')
+            raise InvalidGrid('No spacings defined when applying Diff.')
 
         # accuracy is optional
         if 'acc' in kwargs:
@@ -140,6 +141,7 @@ class Diff(Algebraic):
 
 class Coef(Numberlike):
     """Wrapper class for numbers or numpy arrays."""
+
     def __init__(self, value):
         super(Coef, self).__init__(value)
 
@@ -159,5 +161,51 @@ def coefficients(deriv, acc=None, offsets=None, symbolic=False):
     return findiff.legacy.coefficients(deriv, offsets=offsets, symbolic=True)
 
 
-def matrix_repr(expr, shape=None, spacing=None):
-    pass
+def matrix_repr(expr, shape=None, spacings=None, acc=2):
+    _validate_shape(shape)
+    _validate_and_convert_spacings(spacings, shape)
+    _validate_acc(acc)
+
+    grid = EquidistantGrid.from_shape_and_spacings(shape, spacings)
+    if isinstance(expr, Operation):
+        left_result = matrix_repr(expr.left, shape, spacings, acc)
+        right_result = matrix_repr(expr.right, shape, spacings, acc)
+        return expr.operation(left_result, right_result)
+    else:
+        return core.deriv.matrix_repr(expr.partial, acc, grid)
+
+
+def _validate_shape(shape):
+    if not isinstance(shape, tuple):
+        raise InvalidGrid('shape must be a tuple. Received: %s' % type(shape).__name__)
+    for axis in shape:
+        if axis <= 0:
+            raise InvalidGrid('Number of grid points must be positive. Received: %s' % shape)
+
+
+def _validate_and_convert_spacings(spacings, valid_shape):
+    """ Validates if the specified spacings are compatible with the shape.
+        Returns a dict of spacings.
+    """
+
+    ndims = len(valid_shape)
+
+    # Spacings may be a single number, which means same spacing along all axes.
+    if isinstance(spacings, numbers.Integral):
+        if spacings <= 0:
+            raise InvalidGrid('Grid spacing must be > 0. Received: %f' % spacings)
+        spacings = {axis: spacings for axis in range(ndims)}
+    # Or it can be a dict. Then all axes must be provided:
+    else:
+        if set(spacings.keys()) != set(list(range(ndims))):
+            raise InvalidGrid('Not all spacings specified in dict.')
+        for spac in spacings.values():
+            if spac <= 0:
+                raise InvalidGrid('Grid spacing must be > 0. Received: %f' % spac)
+
+    return spacings
+
+
+def _validate_acc(acc):
+    if acc <= 0 or acc % 2:
+        raise ValueError('acc must be positive even integer. Received: %s' % str(acc))
