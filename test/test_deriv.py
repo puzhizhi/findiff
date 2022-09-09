@@ -224,6 +224,18 @@ class TestsPartialDerivative(unittest.TestCase):
         actual = (-laplace).apply(f, grid, acc=4)
         assert_array_almost_equal(-12*X**2 - 12*Y**2, actual, decimal=4)
 
+    def test_repr(self):
+        pd = PartialDerivative({0: 2})
+        self.assertEqual('{0: 2}', repr(pd))
+
+    def test_str(self):
+        pd = PartialDerivative({0: 2})
+        self.assertEqual('{0: 2}', repr(pd))
+
+    def test_degree_zero_raises_exception(self):
+        with self.assertRaises(ValueError):
+            PartialDerivative({0: 0})
+
 
 class TestMatrixRepr(unittest.TestCase):
 
@@ -320,3 +332,36 @@ class TestMatrixRepr(unittest.TestCase):
         actual = self.apply_with_matrix_repr(diff_op, f, grid, acc=2)
         assert_array_almost_equal(expected, actual)
         assert_array_almost_equal(4*X*Y**2 + 2*X*Y**2, actual)
+
+    def test_unknown_type_raises_typeerror(self):
+        with self.assertRaises(TypeError):
+            matrix_repr({}, 2, EquidistantGrid.from_spacings({0:1}))
+
+
+class TestEquidistantGrid(unittest.TestCase):
+
+    def test_from_spacings_happy_path(self):
+        ndims = 2
+        spacings = {0: 1, 0: 1}
+        grid = EquidistantGrid.from_spacings(ndims, spacings)
+
+        assert len(grid.coords) == ndims
+        x, y = grid.coords
+        assert len(x.shape) == 1
+        assert len(y.shape) == 1
+        assert grid.spacing(0) == 1
+        assert grid.spacing(1) == 1
+
+    def test_from_shape_spacings_happy_path(self):
+        shape = (10, 10)
+        spacings = {0: 1, 0: 1}
+        grid = EquidistantGrid.from_shape_and_spacings(shape, spacings)
+
+        assert len(grid.coords) == 2
+        x, y = grid.coords
+        assert len(x.shape) == 1
+        assert len(y.shape) == 1
+        assert grid.spacing(0) == 1
+        assert grid.spacing(1) == 1
+
+

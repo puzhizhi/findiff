@@ -133,8 +133,6 @@ class PartialDerivative(Algebraic):
         mats = []
         for axis in self.axes:
             deriv = self.degree(axis)
-            if deriv == 0:
-                continue
             siz = np.prod(grid.shape)
             mat = scipy.sparse.lil_matrix((siz, siz))
 
@@ -212,7 +210,7 @@ def matrix_repr(expr, acc, grid):
         right_result = matrix_repr(expr.right, acc, grid)
         return expr.operation(left_result, right_result)
     else:
-        raise ValueError('Cannot calculate matrix representation of type %s' % type(expr).__name__)
+        raise TypeError('Cannot calculate matrix representation of type %s' % type(expr).__name__)
 
 
 class Coordinate(Algebraic):
