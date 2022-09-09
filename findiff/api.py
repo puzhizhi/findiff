@@ -163,7 +163,7 @@ def coefficients(deriv, acc=None, offsets=None, symbolic=False):
 
 def matrix_repr(expr, shape=None, spacings=None, acc=2):
     _validate_shape(shape)
-    _validate_and_convert_spacings(spacings, shape)
+    spacings = _validate_and_convert_spacings(spacings, shape)
     _validate_acc(acc)
 
     grid = EquidistantGrid.from_shape_and_spacings(shape, spacings)
@@ -191,7 +191,7 @@ def _validate_and_convert_spacings(spacings, valid_shape):
     ndims = len(valid_shape)
 
     # Spacings may be a single number, which means same spacing along all axes.
-    if isinstance(spacings, numbers.Integral):
+    if isinstance(spacings, numbers.Real):
         if spacings <= 0:
             raise InvalidGrid('Grid spacing must be > 0. Received: %f' % spacings)
         spacings = {axis: spacings for axis in range(ndims)}

@@ -247,3 +247,43 @@ class TestMatrixRepr(unittest.TestCase):
             acc=2, grid=EquidistantGrid.from_shape_and_spacings((10, 10), spacings={0: 1, 1: 1})
         )
         assert_array_almost_equal(actual.toarray(), expected.toarray())
+
+    def test_matrix_repr_with_single_spacing(self):
+        laplace = Diff(0, 2) + Diff(1, 2)
+        actual = matrix_repr(laplace, shape=(10, 10), spacings=1)
+        expected = core.deriv.matrix_repr(
+            Add(PartialDerivative({0: 2}), PartialDerivative({1: 2})),
+            acc=2, grid=EquidistantGrid.from_shape_and_spacings((10, 10), spacings={0: 1, 1: 1})
+        )
+        assert_array_almost_equal(actual.toarray(), expected.toarray())
+
+    def test_matrix_repr_with_negative_spacing_raises_exception(self):
+        laplace = Diff(0, 2) + Diff(1, 2)
+        with self.assertRaises(InvalidGrid):
+            matrix_repr(laplace, shape=(10, 10), spacings=-1)
+
+    def test_matrix_repr_with_incomplete_spacing_raises_exception(self):
+        laplace = Diff(0, 2) + Diff(1, 2)
+        with self.assertRaises(InvalidGrid):
+            matrix_repr(laplace, shape=(10, 10), spacings={1: 1})
+
+    def test_matrix_repr_with_invalid_shape_raises_exception(self):
+        laplace = Diff(0, 2) + Diff(1, 2)
+        with self.assertRaises(InvalidGrid) as e:
+            matrix_repr(laplace, shape=10, spacings={1: 1})
+            assert 'must be tuple' in str(e)
+
+    def test_matrix_repr_with_single_spacing_applied(self):
+        num_pts = 100
+        shape = num_pts, num_pts
+        x = y = np.linspace(0, 1, num_pts)
+        X, Y = np.meshgrid(x, y, indexing='ij')
+        f = X**2 + Y**2
+        h = x[1]-x[0]
+
+        laplace = Diff(0, 2) + Diff(1, 2)
+        matrix = matrix_repr(laplace, shape=shape, spacings=h)
+        actual = matrix.dot(f.reshape(-1)).reshape(shape)
+
+        expected = 4 * np.ones_like(f)
+        assert_array_almost_equal(expected, actual)
