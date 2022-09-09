@@ -165,7 +165,7 @@ def not_symbolic(func):
 
 
 class Stencil:
-    """Create a stencil based on given offsets for a given differential operator of the
+    r"""Create a stencil based on given offsets for a given differential operator of the
         form
 
         .. math::

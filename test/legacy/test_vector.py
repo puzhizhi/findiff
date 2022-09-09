@@ -1,6 +1,6 @@
 import sys
 
-sys.path.insert(1, '..')
+sys.path.insert(1, '../..')
 
 import unittest
 from numpy.testing import assert_array_almost_equal
