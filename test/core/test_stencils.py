@@ -341,7 +341,7 @@ class TestStencil1D(unittest.TestCase):
         s = ForwardStencil1D(1, 1, 2)
         assert_array_almost_equal([-1.5, 2., -0.5], s.coefs)
 
-    def test_forwardstencil1d(self):
+    def test_backwardstencil1d(self):
         s = BackwardStencil1D(2, 1, 2)
         assert_array_almost_equal([-1, 4, -5, 2], s.coefs)
 
