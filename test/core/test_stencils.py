@@ -243,7 +243,6 @@ class TestStencilOperations(unittest.TestCase):
 
     def test_discretize_helmholtz_1d(self):
         stencil = Stencil(offsets=[-1, 0, 1], partials={(2,): 1}, spacings=[r'\Delta'], symbolic=True)
-        print(stencil)
         d2_dx2, symbols = stencil.as_expression(index_symbols=['n'])
         n, = symbols['indices']
         u = symbols['function']

@@ -1,10 +1,11 @@
-import sys
-
-sys.path.insert(1, '../..')
-
 import unittest
+
 import numpy as np
+
+import findiff
 from findiff import FinDiff, coefficients
+
+findiff.__deprecation_warning__ = False
 
 
 class TestOldBugs(unittest.TestCase):
@@ -83,10 +84,9 @@ class TestOldBugs(unittest.TestCase):
     def test_order_as_numpy_integer(self):
 
         order = np.ones(3, dtype=np.int32)[0]
-        d_dx = FinDiff(0, 0.1, order) # raised an AssertionError with the bug
+        d_dx = FinDiff(0, 0.1, order)  # raised an AssertionError with the bug
 
         np.testing.assert_allclose(d_dx(np.linspace(0, 1, 11)), np.ones(11))
-
 
     def assert_dict_almost_equal(self, actual, expected, places=7):
         if len(actual) != len(expected):

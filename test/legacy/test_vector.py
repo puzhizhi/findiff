@@ -1,11 +1,12 @@
-import sys
-
-sys.path.insert(1, '../..')
-
 import unittest
-from numpy.testing import assert_array_almost_equal
+
 import numpy as np
+from numpy.testing import assert_array_almost_equal
+
+import findiff
 from findiff import Gradient, Divergence, Curl, Laplacian
+
+findiff.__deprecation_warning__ = False
 
 
 class TestGradient(unittest.TestCase):

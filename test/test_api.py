@@ -64,7 +64,6 @@ class TestDiff(unittest.TestCase):
 
         actual_acc2 = D(f, spacings={0: dx, 1: dy})
         max_err_acc2 = np.max(np.abs(expected - actual_acc2))
-        print(max_err_acc2)
 
         actual_acc4 = D(f, acc=4, spacings={0: dx, 1: dy})
         max_err_acc4 = np.max(np.abs(expected - actual_acc4))
@@ -211,7 +210,6 @@ class TestCoefficients(unittest.TestCase):
     def test_can_be_called_with_offsets(self):
         import findiff
         out = findiff.coefficients(2, offsets=[0, 1, 2, 3], symbolic=True)
-        print(out)
         some_coef = out['coefficients'][1]
         assert isinstance(some_coef, sympy.Integer)
         assert some_coef == -5

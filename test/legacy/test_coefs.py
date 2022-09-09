@@ -1,18 +1,18 @@
-import sys
-sys.path.insert(1, '../..')
-
 import unittest
-from findiff import coefficients
-from findiff.legacy.deriv import calc_coefs
 
 import numpy as np
 from sympy import Rational
+
+import findiff
+from findiff import coefficients
+from findiff.legacy.deriv import calc_coefs
+
+findiff.__deprecation_warning__ = False
 
 
 class TestCoefs(unittest.TestCase):
 
     def test_order2_acc2(self):
-
         c = coefficients(deriv=2, acc=2)
 
         coefs = c["center"]["coefficients"]
@@ -31,7 +31,6 @@ class TestCoefs(unittest.TestCase):
         np.testing.assert_array_almost_equal(np.array([-3, -2, -1, 0]), offs)
 
     def test_order1_acc2(self):
-
         c = coefficients(deriv=1, acc=2)
 
         coefs = c["center"]["coefficients"]
@@ -50,38 +49,36 @@ class TestCoefs(unittest.TestCase):
         np.testing.assert_array_almost_equal(np.array([-2, -1, 0]), offs)
 
     def test_order1_acc4(self):
-
         c = coefficients(deriv=1, acc=4)
         coefs = c["center"]["coefficients"]
-        np.testing.assert_array_almost_equal(np.array([1/12, -2/3, 0, 2/3, -1/12]), coefs)
+        np.testing.assert_array_almost_equal(np.array([1 / 12, -2 / 3, 0, 2 / 3, -1 / 12]), coefs)
         offs = c["center"]["offsets"]
         np.testing.assert_array_almost_equal(np.array([-2, -1, 0, 1, 2]), offs)
 
         coefs = c["forward"]["coefficients"]
-        np.testing.assert_array_almost_equal(np.array([-25/12, 4, -3, 4/3, -1/4]), coefs)
+        np.testing.assert_array_almost_equal(np.array([-25 / 12, 4, -3, 4 / 3, -1 / 4]), coefs)
         offs = c["forward"]["offsets"]
         np.testing.assert_array_almost_equal(np.array([0, 1, 2, 3, 4]), offs)
 
         coefs = c["backward"]["coefficients"]
-        np.testing.assert_array_almost_equal(-np.array([-25/12, 4, -3, 4/3, -1/4])[::-1], coefs)
+        np.testing.assert_array_almost_equal(-np.array([-25 / 12, 4, -3, 4 / 3, -1 / 4])[::-1], coefs)
         offs = c["backward"]["offsets"]
         np.testing.assert_array_almost_equal(-np.array([0, 1, 2, 3, 4])[::-1], offs)
 
     def test_order2_acc4(self):
-
         c = coefficients(deriv=2, acc=4)
         coefs = c["center"]["coefficients"]
-        np.testing.assert_array_almost_equal(np.array([-1/12, 4/3, -2.5, 4/3, -1/12]), coefs)
+        np.testing.assert_array_almost_equal(np.array([-1 / 12, 4 / 3, -2.5, 4 / 3, -1 / 12]), coefs)
         offs = c["center"]["offsets"]
         np.testing.assert_array_almost_equal(np.array([-2, -1, 0, 1, 2]), offs)
 
         coefs = c["forward"]["coefficients"]
-        np.testing.assert_array_almost_equal(np.array([15/4, -77/6, 107/6, -13, 61/12, -5/6]), coefs)
+        np.testing.assert_array_almost_equal(np.array([15 / 4, -77 / 6, 107 / 6, -13, 61 / 12, -5 / 6]), coefs)
         offs = c["forward"]["offsets"]
         np.testing.assert_array_almost_equal(np.array([0, 1, 2, 3, 4, 5]), offs)
 
         coefs = c["backward"]["coefficients"]
-        np.testing.assert_array_almost_equal(np.array([15/4, -77/6, 107/6, -13, 61/12, -5/6])[::-1], coefs)
+        np.testing.assert_array_almost_equal(np.array([15 / 4, -77 / 6, 107 / 6, -13, 61 / 12, -5 / 6])[::-1], coefs)
         offs = c["backward"]["offsets"]
         np.testing.assert_array_almost_equal(-np.array([0, 1, 2, 3, 4, 5])[::-1], offs)
 
@@ -117,11 +114,11 @@ class TestCoefs(unittest.TestCase):
 
     def test_calc_coefs_from_offsets(self):
         coefs = calc_coefs(1, [-2, 0, 1])
-        np.testing.assert_array_almost_equal(coefs["coefficients"], [-1./6, -0.5, 2./3])
+        np.testing.assert_array_almost_equal(coefs["coefficients"], [-1. / 6, -0.5, 2. / 3])
 
     def test_calc_coefs_from_offsets_no_central_point(self):
         coefs = calc_coefs(1, [-2, 1, 2])
-        np.testing.assert_array_almost_equal(coefs["coefficients"], [-1./4, 0, 1./4])
+        np.testing.assert_array_almost_equal(coefs["coefficients"], [-1. / 4, 0, 1. / 4])
 
     def test_calc_coefs_symbolic(self):
         coefs = calc_coefs(1, [-2, 0, 1], symbolic=True)

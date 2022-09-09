@@ -1,10 +1,13 @@
-import sys
-sys.path.insert(1, '../..')
-
-from math import log
 import unittest
+from math import log
+
 import numpy as np
+
+import findiff
 from findiff import FinDiff
+
+findiff.__deprecation_warning__ = False
+
 
 class TestScaling(unittest.TestCase):
 

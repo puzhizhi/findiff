@@ -1,12 +1,14 @@
 import unittest
 
 import numpy as np
-
 from numpy.testing import assert_array_almost_equal, assert_array_equal
 
+import findiff
 from findiff import FinDiff, BoundaryConditions, PDE
 from findiff.conflicts import Coef, Identity
 from findiff.core.deriv import matrix_repr, PartialDerivative, EquidistantGrid
+
+findiff.__deprecation_warning__ = False
 
 
 class TestFinDiff(unittest.TestCase):
@@ -14,28 +16,28 @@ class TestFinDiff(unittest.TestCase):
     def test_single_first_deriv_1d(self):
         x = np.linspace(0, 1, 101)
         dx = x[1] - x[0]
-        f = x**3
+        f = x ** 3
 
         d_dx = FinDiff(0, dx, acc=4)
         actual = d_dx(f)
 
-        assert_array_almost_equal(3*x**2, actual)
+        assert_array_almost_equal(3 * x ** 2, actual)
 
     def test_single_second_deriv_1d(self):
         x = np.linspace(0, 1, 101)
         dx = x[1] - x[0]
-        f = x**3
+        f = x ** 3
 
         d_dx = FinDiff(0, dx, 2, acc=4)
         actual = d_dx(f)
 
-        assert_array_almost_equal(6*x, actual)
+        assert_array_almost_equal(6 * x, actual)
 
     def test_single_mixed_deriv_2d(self):
         x = y = np.linspace(0, 1, 101)
         dx = dy = x[1] - x[0]
         X, Y = np.meshgrid(x, y, indexing='ij')
-        f = X**2*Y**2
+        f = X ** 2 * Y ** 2
 
         d2_dxdy = FinDiff((0, dx, 2), (1, dy, 2), acc=4)
         actual = d2_dxdy(f)
@@ -393,7 +395,6 @@ class OldFinDiffTest(unittest.TestCase):
         np.testing.assert_array_almost_equal(expected, actual)
 
 
-
 def grid(ndim, npts, a, b):
     if not hasattr(a, "__len__"):
         a = [a] * ndim
@@ -412,7 +413,6 @@ def grid(ndim, npts, a, b):
 class TestPDE(unittest.TestCase):
 
     def test_1d_dirichlet_hom(self):
-
         shape = (11,)
 
         x = np.linspace(0, 1, 11)
@@ -430,7 +430,6 @@ class TestPDE(unittest.TestCase):
         np.testing.assert_array_almost_equal(expected, u)
 
     def test_1d_dirichlet_inhom(self):
-
         nx = 21
         shape = (nx,)
 
@@ -443,14 +442,13 @@ class TestPDE(unittest.TestCase):
         bc[0] = 1
         bc[-1] = 2
 
-        pde = PDE(L, 6*x, bc)
+        pde = PDE(L, 6 * x, bc)
 
         u = pde.solve()
-        expected = x**3 + 1
+        expected = x ** 3 + 1
         np.testing.assert_array_almost_equal(expected, u)
 
     def test_1d_neumann_hom(self):
-
         nx = 11
         shape = (nx,)
 
@@ -465,11 +463,10 @@ class TestPDE(unittest.TestCase):
 
         pde = PDE(L, np.zeros_like(x), bc)
         u = pde.solve()
-        expected = 2*x + 1
+        expected = 2 * x + 1
         np.testing.assert_array_almost_equal(expected, u)
 
     def test_2d_dirichlet_hom(self):
-
         shape = (11, 11)
 
         x, y = np.linspace(0, 1, shape[0]), np.linspace(0, 1, shape[1])
@@ -499,8 +496,8 @@ class TestPDE(unittest.TestCase):
         X, Y = np.meshgrid(x, y, indexing='ij')
         L = FinDiff(0, dx, 2) + FinDiff(1, dy, 2)
 
-        expected = X**3 + Y**3 + 1
-        f = 6*X + 6*Y
+        expected = X ** 3 + Y ** 3 + 1
+        f = 6 * X + 6 * Y
 
         bc = BoundaryConditions(shape)
 
@@ -521,7 +518,7 @@ class TestPDE(unittest.TestCase):
         X, Y = np.meshgrid(x, y, indexing='ij')
         L = FinDiff(0, dx, 2) + FinDiff(1, dy, 2)
 
-        expected = X**2 + Y**2 + 1
+        expected = X ** 2 + Y ** 2 + 1
         f = 4 * np.ones_like(X)
 
         bc = BoundaryConditions(shape)
@@ -530,15 +527,14 @@ class TestPDE(unittest.TestCase):
 
         bc[0, :] = expected
         bc[-1, :] = expected
-        bc[:, 0] = d_dy, 2*Y
-        bc[:, -1] = d_dy, 2*Y
+        bc[:, 0] = d_dy, 2 * Y
+        bc[:, -1] = d_dy, 2 * Y
 
         pde = PDE(L, f, bc)
         u = pde.solve()
         np.testing.assert_array_almost_equal(expected, u)
 
     def test_1d_oscillator_free_dirichlet(self):
-
         n = 300
         shape = n,
         t = np.linspace(0, 5, n)
@@ -552,7 +548,7 @@ class TestPDE(unittest.TestCase):
 
         eq = PDE(L, np.zeros_like(t), bc)
         u = eq.solve()
-        expected = np.cos(t)-(np.cos(5)-2)*np.sin(t)/np.sin(5)
+        expected = np.cos(t) - (np.cos(5) - 2) * np.sin(t) / np.sin(5)
         np.testing.assert_array_almost_equal(expected, u, decimal=4)
 
     def test_1d_damped_osc_driv_dirichlet(self):
@@ -561,9 +557,9 @@ class TestPDE(unittest.TestCase):
         t = np.linspace(0, 1, n)
         dt = t[1] - t[0]
         L = FinDiff(0, dt, 2) - FinDiff(0, dt) + Identity()
-        f = -3*np.exp(-t)*np.cos(t) + 2*np.exp(-t)*np.sin(t)
+        f = -3 * np.exp(-t) * np.cos(t) + 2 * np.exp(-t) * np.sin(t)
 
-        expected = np.exp(-t)*np.sin(t)
+        expected = np.exp(-t) * np.sin(t)
 
         bc = BoundaryConditions(shape)
 
@@ -601,7 +597,7 @@ class TestPDE(unittest.TestCase):
         t = np.linspace(0, 1, n)
         dt = t[1] - t[0]
         L = Coef(t) * FinDiff(0, dt, 2)
-        f = 6*t**2
+        f = 6 * t ** 2
 
         bc = BoundaryConditions(shape)
 
@@ -610,7 +606,7 @@ class TestPDE(unittest.TestCase):
 
         eq = PDE(L, f, bc)
         u = eq.solve()
-        expected = t**3
+        expected = t ** 3
 
         np.testing.assert_array_almost_equal(expected, u, decimal=4)
 
@@ -620,10 +616,10 @@ class TestPDE(unittest.TestCase):
         x, y = np.linspace(0, 1, shape[0]), np.linspace(0, 1, shape[1])
         dx, dy = x[1] - x[0], y[1] - y[0]
         X, Y = np.meshgrid(x, y, indexing='ij')
-        L = FinDiff(0, dx, 2) + Coef(X*Y) * FinDiff((0, dx, 1), (1, dy, 1)) + FinDiff(1, dy, 2)
+        L = FinDiff(0, dx, 2) + Coef(X * Y) * FinDiff((0, dx, 1), (1, dy, 1)) + FinDiff(1, dy, 2)
 
         expected = X ** 3 + Y ** 3 + 1
-        f = 6*(X + Y)
+        f = 6 * (X + Y)
 
         bc = BoundaryConditions(shape)
 
@@ -637,11 +633,10 @@ class TestPDE(unittest.TestCase):
         np.testing.assert_array_almost_equal(expected, u, decimal=4)
 
     def test_2d_inhom_const_coefs_dirichlet_all(self):
-
         shape = (41, 50)
         (x, y), (dx, dy), (X, Y) = make_grid(shape, edges=[(-1, 1), (-1, 1)])
 
-        expected = X**3 + Y**3 + X*Y + 1
+        expected = X ** 3 + Y ** 3 + X * Y + 1
 
         L = Coef(3) * FinDiff(0, dx, 2) + Coef(2) * FinDiff((0, dx, 1), (1, dy, 1)) + FinDiff(1, dy, 2)
         f = 2 + 18 * X + 6 * Y
@@ -657,14 +652,13 @@ class TestPDE(unittest.TestCase):
         np.testing.assert_array_almost_equal(expected, actual, decimal=4)
 
     def test_2d_inhom_var_coefs_dirichlet_all(self):
-
         shape = (41, 50)
         (x, y), (dx, dy), (X, Y) = make_grid(shape, edges=[(-1, 1), (-1, 1)])
 
-        expected = X**3 + Y**3 + X*Y + 1
+        expected = X ** 3 + Y ** 3 + X * Y + 1
 
-        L = Coef(3*X) * FinDiff(0, dx, 2) + Coef(2*Y) * FinDiff((0, dx, 1), (1, dy, 1)) + FinDiff(1, dy, 2)
-        f = 18 * X**2 + 8*Y
+        L = Coef(3 * X) * FinDiff(0, dx, 2) + Coef(2 * Y) * FinDiff((0, dx, 1), (1, dy, 1)) + FinDiff(1, dy, 2)
+        f = 18 * X ** 2 + 8 * Y
 
         bc = BoundaryConditions(shape)
         bc[0, :] = expected
@@ -678,8 +672,7 @@ class TestPDE(unittest.TestCase):
 
 
 def make_grid(shape, edges):
-
     axes = tuple([np.linspace(edges[k][0], edges[k][1], shape[k]) for k in range(len(shape))])
     coords = np.meshgrid(*axes, indexing='ij')
-    spacings = [axes[k][1]-axes[k][0] for k in range(len(shape))]
+    spacings = [axes[k][1] - axes[k][0] for k in range(len(shape))]
     return axes, spacings, coords
