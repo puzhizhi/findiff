@@ -1,7 +1,7 @@
 ==================
-Module *stencils*
+Module *findiff.api*
 ==================
 
-.. automodule:: findiff.stencils
+.. automodule:: findiff.api
     :members:
 

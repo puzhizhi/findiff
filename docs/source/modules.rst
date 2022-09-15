@@ -5,8 +5,7 @@ Code Reference
 .. toctree::
     :maxdepth: 2
 
-    coefs
-    operators
-    pde
-    stencils
-    vector
+    modules/api
+    modules/algebraic
+    modules/deriv
+    modules/stencils

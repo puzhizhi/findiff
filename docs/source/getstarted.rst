@@ -26,12 +26,11 @@ can be defined by
 
 .. code-block:: ipython
 
-    from findiff import FinDiff
+    from findiff import Diff
 
-    d_dx = FinDiff(0, dx)
+    d_dx = Diff(0)
 
 The first argument is the **axis** along which to take the partial derivative.
-The second argument is the **spacing** of the (equidistant) grid along that axis.
 
 Accordingly, the first partial derivative with respect to the `k`-th axis
 
@@ -41,7 +40,7 @@ is
 
 .. code-block:: ipython
 
-    FinDiff(k, dx_k)
+    Diff(k)
 
 Let's initialize a one-dimensional array ``f`` with some values, for example:
 
@@ -54,14 +53,14 @@ Let's initialize a one-dimensional array ``f`` with some values, for example:
 
 and calculate the first derivative with respect of the zeroth axis.
 
-``FinDiff`` objects behave like operators, so in order to apply them, you can
+``Diff`` objects behave like operators, so in order to apply them, you can
 simply call them on a *numpy* ``ndarray`` of any shape:
 
 
 .. code-block:: ipython
 
-    d_dx = FinDiff(0, dx)
-    df_dx = d_dx(f)
+    d_dx = Diff(0)
+    df_dx = d_dx(f, spacings={0: dx})
 
 Now ``df_dx`` is a new `numpy` array with the same shape as ``f`` containing the
 first derivative with respect to the zeroth axis:
@@ -80,7 +79,7 @@ is
 
 .. code-block:: ipython
 
-    FinDiff(k, dx_k, n)
+    Diff(k, n)
 
 where the last argument stands for the degree of the derivative.
 
@@ -88,20 +87,19 @@ A **mixed partial derivatives** like
 
 .. math:: \frac{\partial^3}{\partial x^2 \partial y}
 
-is defined by
+is defined by passing a :code:`dict` to :code:`Diff`:
 
 .. code-block:: ipython
 
-    FinDiff((0, dx, 2), (1, dy, 1))
+    Diff(({0: 2, 1: 1})
 
-where for each partial derivative, there is a tuple of the form
-``(axis, spacing, degree)`` in the argument list.
+The keys denote the axes and the values stand of the corresponding derivative degrees.
 
 
 General Differential Operators
 ------------------------------
 
-``FinDiff`` objects can be combined to describe general differential
+``Diff`` objects can be combined to describe general differential
 operators. For example, the wave operator
 
 .. math::
@@ -112,7 +110,7 @@ can be written as
 
 .. code-block:: ipython
 
-    1 / c**2 * FinDiff(0, dt, 2) - FinDiff(1, dx, 2)
+    1 / c**2 * Diff(0, 2) - FinDiff(1, 2)
 
 if the 0-axis represents the `t`-axis and the 1-axis the `x`-axis.
 
@@ -125,9 +123,9 @@ is written as
 .. code-block:: ipython
 
     x = np.linspace(-1, 1, 21)
-    Coef(x) * FinDiff(0, dx, 2)
+    Coef(x) * Diff(0, 2)
 
-Finally, multiplication of two ``FinDiff`` objects means chaining differential
+Finally, multiplication of two ``Diff`` objects means chaining differential
 operators, for example
 
 .. math::
@@ -140,8 +138,8 @@ or in `findiff`:
 
 .. code-block:: ipython
 
-    d_dx = FinDiff(0, dx, 1)
-    d_dy = FinDiff(1, dx, 1)
+    d_dx = Diff(0, 1)
+    d_dy = Diff(1, 1)
 
     (d_dx - d_dy) * (d_dx + d_dy)
 
@@ -155,7 +153,8 @@ by setting the keyword argument ``acc``, e.g.
 
 .. code-block:: ipython
 
-    FinDiff(0, dx, 2, acc=4)
+    d_dx = Diff(0)
+    df_dx = d_dx(f, acc=4, spacings={0: dx})
 
 for fourth order accuracy.
 
@@ -187,6 +186,9 @@ which yields
                     'coefficients': array([ 2., -5.,  4., -1.]),
                     'offsets': array([0, 1, 2, 3])}}
 
+By default, the calculated coefficients are floating point numbers, but you
+can get an exact symbolic result by passing the `symbolic=True` to the function.
+
 Matrix Representations
 ::::::::::::::::::::::
 
@@ -196,10 +198,10 @@ representation using the matrix(shape) method, e.g.
 .. code-block:: ipython
 
     x = [np.linspace(0, 6, 7)]
-    d2_dx2 = FinDiff(0, x[1]-x[0], 2)
+    d2_dx2 = Diff(0, 2)
     u = x**2
 
-    mat = d2_dx2.matrix(u.shape)  # this method returns a scipy sparse matrix
+    mat = matrix_repr(d2_dx2, u.shape)  # this function returns a scipy sparse matrix
     print(mat.toarray())
 
 yields
@@ -234,18 +236,18 @@ which can be defined (in second order accuracy here) as
 
 .. code-block:: ipython
 
-    laplacian = FinDiff(0, dx, 2) + FinDiff(1, dy, 2)
+    laplacian = Diff(0, 2) + Diff(1, 2)
 
 When you then apply the Laplacian to an array, *findiff* applies it to
 all grid points. So depending on the grid point point, *findiff* chooses
 on or the other stencil.
 
 You can inspect the stencils for a differential operator by calling
-its :code:`stencil` method, passing the shape of the grid
+the :code:`stencils` function, passing the shape of the grid
 
 .. code-block:: ipython
 
-    laplacian.stencil(f.shape)
+    stencils(laplacian, f.shape)
 
 This returns
 
@@ -292,7 +294,7 @@ for the left edge :code:`('L', 'C')`.
 The :code:`stencil` method works for grids of all dimensions and not just two. But of course,
 it is not easy to visualize for higher dimensions.
 
-While :code:`FinDiff` object act on complete arrays, stencils can be applied
+While :code:`Diff` object act on complete arrays, stencils can be applied
 to individual grid points, if you just need a numeric derivative evaluated
 at one point. For instance,
 
@@ -302,7 +304,7 @@ at one point. For instance,
     X, Y = np.meshgrid(x, y, indexing='ij')
     f = X**3 + Y**3
 
-    stencils = laplacian.stencil(f.shape)
+    stencils = stencil_repr(laplacian, f.shape)
     stencils.apply(f, (100, 100)) # evaluate at f[100, 100]
 
 returns :code:`12`, as expected. :code:`stencil` returns a list of stencils and
@@ -314,7 +316,7 @@ Stencils From Scratch
 ---------------------
 
 There may be situations when you want to create your own stencils and do not
-want to use the stencils automatically created by :code:`FinDiff` objects.
+want to use the stencils automatically created by :code:`Diff` objects.
 This is mainly for exploratory work. For example, you may wonder, how the
 coefficients for the 2D Laplacian look like if you don't use the cross-shaped
 stencil from the previous section but rather an x-shaped one:
