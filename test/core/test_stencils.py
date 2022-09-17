@@ -8,7 +8,9 @@ from sympy import Rational, Symbol, simplify
 from findiff import FinDiff
 from findiff.conflicts import Identity
 from findiff import Stencil
-from findiff.core.stencils import Stencil1D, SymmetricStencil1D, ForwardStencil1D, BackwardStencil1D
+from findiff.core.deriv import PartialDerivative, EquidistantGrid
+from findiff.core.stencils import Stencil1D, SymmetricStencil1D, ForwardStencil1D, BackwardStencil1D, StencilSet, \
+    GenericStencil
 from findiff.symbolics.deriv import DerivativeSymbol
 
 
@@ -24,7 +26,7 @@ class TestStencilOperations(unittest.TestCase):
             (-1, 0): 1, (1, 0): 1, (0, 1): 1, (0, -1): 1
         }
 
-        self.assertEqual(expected, stencil.values)
+        self.assertEqual(expected, stencil.as_dict())
         self.assertEqual(2, stencil.accuracy)
 
     def test_solve_laplace_2d_with_9_points(self):
@@ -39,8 +41,8 @@ class TestStencilOperations(unittest.TestCase):
         }
 
         self.assertEqual(4, stencil.accuracy)
-        self.assertEqual(len(expected), len(stencil.values))
-        for off, coeff in stencil.values.items():
+        self.assertEqual(len(expected), len(stencil.as_dict()))
+        for off, coeff in stencil.as_dict().items():
             self.assertAlmostEqual(coeff, expected[off])
 
     def test_solve_laplace_2d_with_5_points_times_2(self):
@@ -53,7 +55,7 @@ class TestStencilOperations(unittest.TestCase):
             (-1, 0): 2, (1, 0): 2, (0, 1): 2, (0, -1): 2
         }
 
-        self.assertEqual(expected, stencil.values)
+        self.assertEqual(expected, stencil.as_dict())
         self.assertEqual(2, stencil.accuracy)
 
     def test_solve_laplace_2d_with_5_points_times_2_and_spacing(self):
@@ -66,8 +68,8 @@ class TestStencilOperations(unittest.TestCase):
             (-1, 0): 200, (1, 0): 200, (0, 1): 200, (0, -1): 200
         }
 
-        self.assertEqual(len(expected), len(stencil.values))
-        for off, coeff in stencil.values.items():
+        self.assertEqual(len(expected), len(stencil.as_dict()))
+        for off, coeff in stencil.as_dict().items():
             self.assertAlmostEqual(coeff, expected[off])
         self.assertEqual(2, stencil.accuracy)
 
@@ -185,7 +187,7 @@ class TestStencilOperations(unittest.TestCase):
         expected = {('L',): {(0,): -1.0, (1,): 5.0, (2,): -4.0, (3,): 1.0}, ('C',): {(-1,): -1.0, (0,): 3.0, (1,): -1.0},
          ('H',): {(-3,): 1.0, (-2,): -4.0, (-1,): 5.0, (0,): -1.0}}
 
-        actual = stencil_set.data
+        actual = stencil_set.as_dict()
         self.assertEqual(len(expected), len(actual))
         self.assertEqual(expected.keys(), actual.keys())
         for key, expected_stencil in expected.items():
@@ -260,8 +262,8 @@ class TestStencilOperations(unittest.TestCase):
         d = D(0, 2)
         stencil = Stencil(offsets=[-1, 0, 1], partials=d, symbolic=True)
         self.assertEqual(
-            Stencil(offsets=[-1, 0, 1], partials={(2,): 1}, symbolic=True).values,
-            stencil.values
+            Stencil(offsets=[-1, 0, 1], partials={(2,): 1}, symbolic=True).as_dict(),
+            stencil.as_dict()
         )
 
     def test_stencil_using_derivativesymbol_2d_laplace(self):
@@ -269,8 +271,8 @@ class TestStencilOperations(unittest.TestCase):
         d = D(0, 2) + D(1, 2)
         stencil = Stencil(offsets=[(0, 0), (1, 0), (-1, 0), (0, 1), (0, -1)], partials=d, symbolic=True)
         self.assertEqual(
-            Stencil(offsets=[(0, 0), (1, 0), (-1, 0), (0, 1), (0, -1)], partials={(2, 0): 1, (0, 2): 1}, symbolic=True).values,
-            stencil.values
+            Stencil(offsets=[(0, 0), (1, 0), (-1, 0), (0, 1), (0, -1)], partials={(2, 0): 1, (0, 2): 1}, symbolic=True).as_dict(),
+            stencil.as_dict()
         )
 
     def test_stencil_using_derivativesymbol_2d_with_constant_factors(self):
@@ -278,8 +280,8 @@ class TestStencilOperations(unittest.TestCase):
         d = D(0, 2) - 2 * D(1, 2)
         stencil = Stencil(offsets=[(0, 0), (1, 0), (-1, 0), (0, 1), (0, -1)], partials=d, symbolic=True)
         self.assertEqual(
-            Stencil(offsets=[(0, 0), (1, 0), (-1, 0), (0, 1), (0, -1)], partials={(2, 0): 1, (0, 2): -2}, symbolic=True).values,
-            stencil.values
+            Stencil(offsets=[(0, 0), (1, 0), (-1, 0), (0, 1), (0, -1)], partials={(2, 0): 1, (0, 2): -2}, symbolic=True).as_dict(),
+            stencil.as_dict()
         )
 
     def test_stencil_using_derivativesymbol_2d_with_constant_minus_one(self):
@@ -287,8 +289,8 @@ class TestStencilOperations(unittest.TestCase):
         d = D(0, 2) - D(1, 2)
         stencil = Stencil(offsets=[(0, 0), (1, 0), (-1, 0), (0, 1), (0, -1)], partials=d, symbolic=True)
         self.assertEqual(
-            Stencil(offsets=[(0, 0), (1, 0), (-1, 0), (0, 1), (0, -1)], partials={(2, 0): 1, (0, 2): -1}, symbolic=True).values,
-            stencil.values
+            Stencil(offsets=[(0, 0), (1, 0), (-1, 0), (0, 1), (0, -1)], partials={(2, 0): 1, (0, 2): -1}, symbolic=True).as_dict(),
+            stencil.as_dict()
         )
 
     def test_binomial_expanded_without_simplify_does_not_combine(self):
@@ -311,7 +313,10 @@ class TestStencilOperations(unittest.TestCase):
         actual = d3_dx2dy(f, at=(5, 5, 5))
         self.assertAlmostEqual(expected, actual)
 
-        d3_dx2dy_sym = Stencil(offsets, {(2, 1, 0): 1}, spacings=[dx, dy, dz], symbolic=True)
+    def test_symbolic_stencil(self):
+        offsets = list(product([-1, 0, 1], repeat=3))
+        d3_dx2dy_sym = Stencil(offsets, {(2, 1, 0): 1}, spacings=[1, 1, 1], symbolic=True)
+        assert d3_dx2dy_sym[(-1, -1, 0)] == -Rational(1, 2)
 
     def test_wave_equation_stencil(self):
         D = DerivativeSymbol
@@ -328,22 +333,60 @@ class TestStencil1D(unittest.TestCase):
 
     def test_stencil1d(self):
         s = Stencil1D(2, [-1, 0, 1], 1)
-        assert {-1: 1, 0: -2, 1: 1} == s.data
+        assert {-1: 1, 0: -2, 1: 1} == s.as_dict()
 
     def test_symmetricstencil1d(self):
         s = SymmetricStencil1D(2, 1, 2)
-        assert {-1: 1, 0: -2, 1: 1} == s.data
+        assert {-1: 1, 0: -2, 1: 1} == s.as_dict()
 
     def test_forwardstencil1d(self):
         s = ForwardStencil1D(2, 1, 2)
-        assert_array_almost_equal([2, -5, 4, -1], s.coefs)
+        assert_array_almost_equal([2, -5, 4, -1], s.coefficients)
 
         s = ForwardStencil1D(1, 1, 2)
-        assert_array_almost_equal([-1.5, 2., -0.5], s.coefs)
+        assert_array_almost_equal([-1.5, 2., -0.5], s.coefficients)
 
     def test_backwardstencil1d(self):
         s = BackwardStencil1D(2, 1, 2)
-        assert_array_almost_equal([-1, 4, -5, 2], s.coefs)
+        assert_array_almost_equal([-1, 4, -5, 2], s.coefficients)
 
         s = BackwardStencil1D(1, 1, 2)
-        assert_array_almost_equal([0.5, -2, 1.5], s.coefs)
+        assert_array_almost_equal([0.5, -2, 1.5], s.coefficients)
+
+
+class TestGenericStencil(unittest.TestCase):
+
+    def test_generic_stencils_can_be_added(self):
+        stencil_1 = GenericStencil({(0, -1): 1., (0, 0): -2., (0, 1): 1.})
+        stencil_2 = GenericStencil({(0, -2): 1., (0, 0): -1., (0, 1): 1.})
+        result = stencil_1 + stencil_2
+        self.assertEqual(
+            {(0, -2): 1, (0, -1): 1., (0, 0): -3., (0, 1): 2.},
+            result.as_dict()
+        )
+
+    def test_generic_stencils_can_be_multiplied(self):
+        stencil = GenericStencil({(0, -1): 1., (0, 0): -2., (0, 1): 1.})
+        result = stencil * 2
+        self.assertEqual(
+            {(0, -1): 2., (0, 0): -4., (0, 1): 2.},
+            result.as_dict()
+        )
+        result = 2 * stencil
+        self.assertEqual(
+            {(0, -1): 2., (0, 0): -4., (0, 1): 2.},
+            result.as_dict()
+        )
+
+
+class TestStencilSet(unittest.TestCase):
+
+    def test_stencilset_for_partial_2d(self):
+        pd = PartialDerivative({1: 2})
+        grid = EquidistantGrid((0, 10, 11), (0, 10, 11))
+        acc = 2
+        stencil_set = StencilSet(pd, grid, acc)
+
+        self.assertEqual({(0, -1): 1., (0, 0): -2., (0, 1): 1.}, stencil_set[('C', 'C')].as_dict())
+
+

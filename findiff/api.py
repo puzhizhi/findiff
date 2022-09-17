@@ -16,18 +16,20 @@ from findiff.core.deriv import PartialDerivative, EquidistantGrid, InvalidGrid, 
 
 __all__ = ['Diff', 'Coef', 'matrix_repr', 'Identity', 'coefficients']
 
+from findiff.core.stencils import StencilSet
 
-class Diff(Algebraic):
 
-    def __init__(self, *args):
-        """Defines a (possibly mixed) partial derivative operator.
+class Diff(PartialDerivative):
+    """Defines a (possibly mixed) partial derivative operator.
 
         Note the difference between defining the derivative operator and applying it.
         For applying the derivative operator, call it, once it is defined.
-
+    """
+    def __init__(self, *args):
+        """
         Parameters
         ----------
-        args:   Variable list of arguments specifying the kind of partial derivative.
+        args:
 
             If exactly one integer argument is given, it means 'axis', where 'axis' is
             a positive integer, denoting the axis along which to take the (first, degree=1)
@@ -39,9 +41,7 @@ class Diff(Algebraic):
 
             If two integer arguments are given, the first denotes the axis along which
             to take the derivative, the second denotes the degree of the derivative.
-
         """
-        super(Diff, self).__init__()
         if len(args) == 1 and type(args[0]) == dict:
             degrees = args[0]
         elif len(args) == 2:
@@ -55,12 +55,17 @@ class Diff(Algebraic):
 
         self._validate_degrees_dict(degrees)
 
-        self.partial = PartialDerivative(degrees)
+        super(Diff, self).__init__(degrees)
 
     def __call__(self, f, **kwargs):
         """Applies the partial derivative operator to an array.
 
-        The function delegates to self.apply(f, **kwargs).
+        The function delegates to method *self.apply*.
+        """
+        return self.apply(f, **kwargs)
+
+    def apply(self, f, **kwargs):
+        """Applies the partial derivative operator to an array.
 
         Parameters
         ----------
@@ -91,16 +96,9 @@ class Diff(Algebraic):
         >> d2_dxdy = Diff({0: 1, 1: 1})    # or: Diff(0) * Diff(1)
         >> d2f_dxdy = d2_dxdy(f, spacing={0: dx, 1: dy})
         """
-        return self.apply(f, **kwargs)
-
-    def apply(self, f, **kwargs):
-        """Applies the partial derivative operator to an array.
-
-        For details, see help on __call__.
-        """
 
         # make sure the array shape is big enough
-        max_axis = max(self.partial.axes)
+        max_axis = max(self.axes)
 
         if max_axis >= f.ndim:
             raise InvalidArraySize('Array has not enough dimensions for given derivative operator.'
@@ -119,7 +117,7 @@ class Diff(Algebraic):
         else:
             acc = 2
 
-        return self.partial.apply(f, grid, acc)
+        return super().apply(f, grid, acc)
 
     def _validate_and_convert_spacings(self, ndim, spacings):
         if not isinstance(spacings, dict):
@@ -130,7 +128,7 @@ class Diff(Algebraic):
             else:
                 raise InvalidGrid('spacings keyword argument must be a dict or single number.')
         # Assert that spacings along all axes are defined, where derivatives need:
-        for axis in self.partial.axes:
+        for axis in self.axes:
             if axis not in spacings:
                 raise InvalidGrid('No spacings along axis %d defined.' % axis)
         return spacings
@@ -176,7 +174,16 @@ def matrix_repr(expr, shape=None, spacings=None, acc=2):
         right_result = matrix_repr(expr.right, shape, spacings, acc)
         return expr.operation(left_result, right_result)
     else:
-        return core.deriv.matrix_repr(expr.partial, acc, grid)
+        return core.deriv.matrix_repr(expr, acc, grid)
+
+
+def stencils_repr(expr, grid):
+    if isinstance(expr, PartialDerivative):
+        return StencilSet(expr, grid, acc=2)
+    else:
+        pass
+
+
 
 
 class Coef(Numberlike):
@@ -187,6 +194,7 @@ class Coef(Numberlike):
 
 
 class Identity(Coef):
+    """Represents the identity operator."""
     def __init__(self):
         super(Identity, self).__init__(1)
 

@@ -130,7 +130,9 @@ class FinDiff(Algebraic):
         return self.partial.matrix_repr(self.grid, acc)
 
     def stencil(self, shape):
-        return StencilSet(self, shape)
+        if shape != self.grid.shape:
+            pass # TODO: continue here
+        return StencilSet(self.partial, self.grid, self.acc)
 
     def _parse_args(self, args):
         assert len(args) > 0
@@ -192,7 +194,8 @@ class DirtyMixin:
 
     def stencil(self, shape):
         deprecation_warning('Method "stencil"')
-        return StencilSet(self, shape)
+        dummy_grid = EquidistantGrid((0, 1, 5))
+        return StencilSet(self, dummy_grid, 2)
 
 
 class DirtyNumberlike(DirtyMixin, Numberlike):

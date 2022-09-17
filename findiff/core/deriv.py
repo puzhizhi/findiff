@@ -14,15 +14,18 @@ import scipy
 
 from findiff.core.algebraic import Algebraic, Mul, Numberlike, Operation
 from findiff.core.stencils import StencilStore, SymmetricStencil1D, ForwardStencil1D, BackwardStencil1D
+from findiff.core.stencils2 import StencilSet
 from findiff.utils import long_indices_as_ndarray, to_long_index
 
 
 class PartialDerivative(Algebraic):
-
-    def __init__(self, degrees):
-        """ Representation of a (possibly mixed) partial derivative.
+    """Representation of a (possibly mixed) partial derivative.
 
         Instances of this class are meant to be immutable.
+    """
+
+    def __init__(self, degrees):
+        """Constructor
 
         Parameters
         ----------
@@ -91,9 +94,27 @@ class PartialDerivative(Algebraic):
                 raise ValueError('Degree must be positive integer')
 
     def apply(self, arr, grid, acc):
+        """Applies the partial derivative to an array.
+
+        Parameters
+        ----------
+        arr : array-like
+            The array that shall be differentiated.
+        grid : EquidistantGrid
+            The numerical grid.
+        acc : positive even int
+            The accuracy order.
+
+        Returns
+        -------
+        out : array-like
+            The differentiated array. Same shape as input array.
+        """
 
         if not isinstance(arr, np.ndarray):
             raise TypeError('Can only apply derivative to NumPy arrays. Instead got %s.' % (arr.__class__.__name__))
+
+#        stencil_set = StencilSet(self, spacing, ndims, acc)
 
         for axis in self.axes:
             res = np.zeros_like(arr)
@@ -106,20 +127,21 @@ class PartialDerivative(Algebraic):
             left, right = stencil.get_num_points_side()
             right = arr.shape[axis] - right
             res = self._apply_axis(res, arr, axis,
-                                   stencil.data,
+                                   stencil.as_dict(),
                                    left, right)
 
             # In the boundary of the symmetric stencil, apply
-            # one-sided stencils instead (forward/backward):
+            # one-sided stencils instead; first forward:
             bndry_size = stencil.get_boundary_size()
             stencil = StencilStore.get_stencil(ForwardStencil1D, deriv=deriv, acc=acc, spacing=spacing)
             res = self._apply_axis(res, arr, axis,
-                                   stencil.data,
+                                   stencil.as_dict(),
                                    0, bndry_size)
 
+            # now backward
             stencil = StencilStore.get_stencil(BackwardStencil1D, deriv=deriv, acc=acc, spacing=spacing)
             res = self._apply_axis(res, arr, axis,
-                                   stencil.data,
+                                   stencil.as_dict(),
                                    arr.shape[axis] - bndry_size, arr.shape[axis])
             arr = res
 

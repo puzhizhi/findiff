@@ -339,7 +339,7 @@ class OldFinDiffTest(unittest.TestCase):
     def dict_almost_equal(self, d1, d2):
         self.assertEqual(len(d1), len(d2))
 
-        for k, v in d1.data():
+        for k, v in d1.as_dict():
             self.assertAlmostEqual(v, d2[k])
 
     def test_matrix_1d(self):

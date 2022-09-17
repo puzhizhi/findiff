@@ -4,8 +4,8 @@ import numpy as np
 import sympy
 from numpy.testing import assert_array_almost_equal
 
-from findiff import Diff, core
-from findiff.api import matrix_repr
+from findiff import Diff, core, Stencil
+from findiff.api import matrix_repr, stencils_repr
 from findiff.conflicts import Coef
 from findiff import InvalidGrid, InvalidArraySize
 from findiff.core.algebraic import Add
@@ -276,8 +276,8 @@ class TestMatrixRepr(unittest.TestCase):
         shape = num_pts, num_pts
         x = y = np.linspace(0, 1, num_pts)
         X, Y = np.meshgrid(x, y, indexing='ij')
-        f = X**2 + Y**2
-        h = x[1]-x[0]
+        f = X ** 2 + Y ** 2
+        h = x[1] - x[0]
 
         laplace = Diff(0, 2) + Diff(1, 2)
         matrix = matrix_repr(laplace, shape=shape, spacings=h)
@@ -285,3 +285,25 @@ class TestMatrixRepr(unittest.TestCase):
 
         expected = 4 * np.ones_like(f)
         assert_array_almost_equal(expected, actual)
+
+
+class TestStencils(unittest.TestCase):
+
+    def assert_stencilset_equal(self, stl_set_1, stl_set_2):
+        assert stl_set_1.keys() == stl_set_2.keys()
+        for key in stl_set_1.keys():
+            stl_1 = stl_set_1[key]
+            stl_2 = stl_set_2[key]
+            assert stl_1.keys() == stl_2.keys()
+            assert list(stl_1.values()) == list(stl_2.values())
+
+    def test_stencils_for_d_dx(self):
+        d_dx = Diff(0)
+        grid = EquidistantGrid((0, 10, 11))
+        actual = stencils_repr(d_dx, grid)
+        expected = {
+            ('L',): {(0,): -1.5, (1,): 2.0, (2,): -0.5},
+            ('C',): {(-1,): -0.5, (0,): 0.0, (1,): 0.5},
+            ('H',): {(-2,): 0.5, (-1,): -2.0, (0,): 1.5}}
+        self.assert_stencilset_equal(actual.as_dict(), expected)
+

@@ -71,14 +71,14 @@ class TestOldBugs(unittest.TestCase):
                          (-1, 0): -3.999999999999996, (0, 0): 2.0833333333333317},
         }
 
-        for char_pt in stencil1.data:
-            stl = stencil1.data[char_pt]
+        for char_pt in stencil1.as_dict():
+            stl = stencil1.as_dict()[char_pt]
             self.assert_dict_almost_equal(expected[char_pt], stl)
 
         d1x = FinDiff(0, dx, 1, acc=4)
         stencil1 = d1x.stencil(shape)
-        for char_pt in stencil1.data:
-            stl = stencil1.data[char_pt]
+        for char_pt in stencil1.as_dict:
+            stl = stencil1.as_dict[char_pt]
             self.assert_dict_almost_equal(expected[char_pt], stl)
 
     def test_order_as_numpy_integer(self):

@@ -51,6 +51,13 @@ class Numberlike(Algebraic):
     """
 
     def __init__(self, value):
+        """Constructor
+
+        Parameters
+        ----------
+        value : scalar or array-like
+            The numeric value to wrap.
+        """
         super(Numberlike, self).__init__()
         self.value = value
 

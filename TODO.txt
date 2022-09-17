@@ -1,3 +1,5 @@
 - Stencil needs a more comfortable constructor, and: stencil.values is not a good name.
 - Stencil needs better accessors to its data.
 
+- allow stencils to add, multiply
+
