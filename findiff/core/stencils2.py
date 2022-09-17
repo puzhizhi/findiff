@@ -302,6 +302,15 @@ class StencilSet:
     """
 
     def __init__(self, partial, spacing, ndims, acc):
+        """
+
+        Parameters
+        ----------
+        partial : PartialDerivative
+        spacing : Spacgin
+        ndims : int
+        acc : int
+        """
         self._stencils = self._create_stencils(acc, ndims, partial, spacing)
         self.ndims = ndims
         self.inner_mask = None

@@ -14,7 +14,7 @@ import scipy
 
 from findiff.core.algebraic import Algebraic, Mul, Numberlike, Operation
 from findiff.core.stencils import StencilStore, SymmetricStencil1D, ForwardStencil1D, BackwardStencil1D
-from findiff.core.stencils2 import StencilSet
+from findiff.core.stencils2 import StencilSet, Spacing
 from findiff.utils import long_indices_as_ndarray, to_long_index
 
 
@@ -114,38 +114,9 @@ class PartialDerivative(Algebraic):
         if not isinstance(arr, np.ndarray):
             raise TypeError('Can only apply derivative to NumPy arrays. Instead got %s.' % (arr.__class__.__name__))
 
-#        stencil_set = StencilSet(self, spacing, ndims, acc)
-
-        for axis in self.axes:
-            res = np.zeros_like(arr)
-            deriv = self.degree(axis)
-            spacing = grid.spacing(axis)
-
-            # Apply symmetric stencil in the interior of the grid,
-            # wherever possible:
-            stencil = StencilStore.get_stencil(SymmetricStencil1D, deriv=deriv, acc=acc, spacing=spacing)
-            left, right = stencil.get_num_points_side()
-            right = arr.shape[axis] - right
-            res = self._apply_axis(res, arr, axis,
-                                   stencil.as_dict(),
-                                   left, right)
-
-            # In the boundary of the symmetric stencil, apply
-            # one-sided stencils instead; first forward:
-            bndry_size = stencil.get_boundary_size()
-            stencil = StencilStore.get_stencil(ForwardStencil1D, deriv=deriv, acc=acc, spacing=spacing)
-            res = self._apply_axis(res, arr, axis,
-                                   stencil.as_dict(),
-                                   0, bndry_size)
-
-            # now backward
-            stencil = StencilStore.get_stencil(BackwardStencil1D, deriv=deriv, acc=acc, spacing=spacing)
-            res = self._apply_axis(res, arr, axis,
-                                   stencil.as_dict(),
-                                   arr.shape[axis] - bndry_size, arr.shape[axis])
-            arr = res
-
-        return res
+        spacing = Spacing({axis: grid.spacing(axis) for axis in self.axes})
+        stencil_set = StencilSet(self, spacing, grid.ndims, acc)
+        return stencil_set.apply(arr)
 
     def matrix_repr(self, grid, acc):
         """Returns the matrix representation of the partial derivative on a given grid."""
@@ -198,17 +169,6 @@ class PartialDerivative(Algebraic):
         for i in range(1, len(mats)):
             mat = mat.dot(mats[i])
         return mat
-
-    def _apply_axis(self, res, arr, axis, stencil_data, left, right):
-        base_sl = slice(left, right)
-        multi_base_sl = [slice(None, None)] * arr.ndim
-        multi_base_sl[axis] = base_sl
-        for off, coef in stencil_data.items():
-            off_sl = slice(left + off, right + off)
-            multi_off_sl = [slice(None, None)] * arr.ndim
-            multi_off_sl[axis] = off_sl
-            res[tuple(multi_base_sl)] += coef * arr[tuple(multi_off_sl)]
-        return res
 
 
 def matrix_repr(expr, acc, grid):
