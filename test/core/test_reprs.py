@@ -120,13 +120,13 @@ class TestStencilsRepr(unittest.TestCase):
     def test_trivialstencilset_has_required_char_pts(self):
         nl = Numberlike(2)
         f = np.ones((5, 5))
-        trivial = stencils_repr(nl, spacing=None, ndims=2)
+        trivial = stencils_repr(nl, spacing=1, ndims=2)
         assert len(trivial.as_dict()) == 9
 
     def test_trivialstencilset_applied(self):
         nl = Numberlike(2)
         f = np.ones((5, 5))
-        trivial = stencils_repr(nl, spacing=None, ndims=2)
+        trivial = stencils_repr(nl, spacing=1, ndims=2)
         actual = trivial.apply(f)
         assert_array_almost_equal(2 * f, actual)
 

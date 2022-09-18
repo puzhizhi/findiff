@@ -1,8 +1,10 @@
+import numbers
 from itertools import product
 
 import numpy as np
 import scipy
 
+from findiff.core import Spacing
 from findiff.core import DEFAULT_ACCURACY
 from findiff.core.algebraic import Numberlike, Operation
 from findiff.core.deriv import PartialDerivative
@@ -100,6 +102,17 @@ def stencils_repr(expr, **kwargs):
         raise TypeError('Cannot calculate matrix representation of type %s' % type(expr).__name__)
 
 
+def _parse_spacing(spacing):
+    if isinstance(spacing, Spacing):
+        return spacing
+    if isinstance(spacing, dict):
+        return Spacing(spacing)
+    if isinstance(spacing, numbers.Real):
+        return Spacing(spacing)
+    raise TypeError('Cannot parse this type (%s) to create Spacing instance.', type(spacing).__name__)
+
+
+
 def _matrix_expr_of_partial_derivative(partial, spacing, shape, acc):
     ndims = len(shape)
     long_indices_nd = long_indices_as_ndarray(shape)
@@ -170,7 +183,7 @@ def _parse_stencils_repr_kwargs(**kwargs):
     ## spacing, ndims, acc
     found_para = require_exactly_one_parameter(['spacing', 'grid'], kwargs, 'stencil_repr')
     if found_para == 'spacing':
-        spacing = kwargs[found_para]
+        spacing = _parse_spacing(kwargs[found_para])
         ndims = require_parameter('ndims', kwargs, 'stencil_repr')
     else: # found grid
         grid = kwargs[found_para]

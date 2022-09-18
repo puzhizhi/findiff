@@ -4,7 +4,7 @@ import numpy as np
 import sympy
 from numpy.testing import assert_array_almost_equal
 
-from findiff import Diff, Spacing
+from findiff import Diff, Spacing, Identity
 from findiff import InvalidGrid, InvalidArraySize
 from findiff import matrix_repr, stencils_repr
 from findiff.conflicts import Coef
@@ -293,3 +293,21 @@ class TestStencils(unittest.TestCase):
 
         for pos in [('L',), ('C',), ('H',)]:
             self.assertEqual(expected[pos], actual[pos].as_dict())
+
+    def test_helmholtz_stencil_issue_60(self):
+        # This is a regression test for issue #60.
+
+        H = Identity() - Diff(0, 2)
+
+        stencil_set = stencils_repr(H, spacing=1, ndims=1, acc=2)
+
+        expected = {('L',): {(0,): -1.0, (1,): 5.0, (2,): -4.0, (3,): 1.0}, ('C',): {(-1,): -1.0, (0,): 3.0, (1,): -1.0},
+         ('H',): {(-3,): 1.0, (-2,): -4.0, (-1,): 5.0, (0,): -1.0}}
+
+        actual = stencil_set.as_dict()
+        self.assertEqual(len(expected), len(actual))
+        self.assertEqual(expected.keys(), actual.keys())
+        for key, expected_stencil in expected.items():
+            actual_stencil = actual[key]
+
+            self.assertEqual(expected_stencil, actual_stencil.as_dict())

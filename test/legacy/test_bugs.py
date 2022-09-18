@@ -88,27 +88,6 @@ class TestOldBugs(unittest.TestCase):
 
         np.testing.assert_allclose(d_dx(np.linspace(0, 1, 11)), np.ones(11))
 
-    def test_helmholtz_stencil_issue_60(self):
-        # This is a regression test for issue #60.
-
-        H = Identity() - FinDiff(0, 1, 2)
-
-        stencil_set = H.stencil((10,))
-
-        expected = {('L',): {(0,): -1.0, (1,): 5.0, (2,): -4.0, (3,): 1.0}, ('C',): {(-1,): -1.0, (0,): 3.0, (1,): -1.0},
-         ('H',): {(-3,): 1.0, (-2,): -4.0, (-1,): 5.0, (0,): -1.0}}
-
-        actual = stencil_set.as_dict()
-        self.assertEqual(len(expected), len(actual))
-        self.assertEqual(expected.keys(), actual.keys())
-        for key, expected_stencil in expected.items():
-            actual_stencil = actual[key]
-
-            self.assertEqual(expected_stencil.keys(), actual_stencil.keys())
-            for offset, expected_coef in expected_stencil.items():
-                actual_coef = actual_stencil[offset]
-                self.assertAlmostEqual(expected_coef, actual_coef)
-
     def assert_dict_almost_equal(self, actual, expected, places=7):
         if len(actual) != len(expected):
             return False

@@ -5,7 +5,7 @@ import numpy as np
 from numpy.testing import assert_allclose
 from sympy import Rational, Symbol, simplify
 
-from findiff.core import PartialDerivative
+from findiff.core import PartialDerivative, BackwardStencil
 from findiff.core import Stencil, StandardStencilFactory, SymmetricStencil, StandardStencilSet, StencilFactory
 from findiff.core import Spacing
 
@@ -370,3 +370,12 @@ class IntegrationTestsStencilSet(unittest.TestCase):
         actual = stencil_set.apply(f)
 
         assert_allclose(np.ones_like(f), actual, atol=1E-10)
+
+
+class TestBackwardStencil(unittest.TestCase):
+
+    def test_first_deriv(self):
+        factory = StandardStencilFactory()
+
+        stencil = factory.create(BackwardStencil, 1, 1, acc=2, symbolic=False)
+        print(stencil)

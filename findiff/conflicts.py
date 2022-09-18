@@ -2,9 +2,10 @@
 
 
 from findiff import legacy as legacy, api as api
+from findiff.core import Numberlike
 
 
-class Coef:
+class Coef(Numberlike):
     """Wrapper class for constant and variable coefficients."""
     def __init__(self, value):
         self.value = value
@@ -27,7 +28,7 @@ class Coef:
         return self.value * target
 
 
-class Identity:
+class Identity(api.Identity):
     """Representation of the identity operator."""
 
     def __mul__(self, other):

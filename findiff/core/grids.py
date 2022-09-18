@@ -15,6 +15,8 @@ class Spacing:
             for axis, value in spacing_dict.items():
                 if isinstance(value, str):
                     spacing_dict[axis] = sympy.Symbol(value)
+                elif isinstance(value, Symbol):
+                    pass # leave entry as it is
                 elif value <= 0:
                     raise InvalidGrid('Spacing value must be positive.')
             self._data = spacing_dict
@@ -22,6 +24,8 @@ class Spacing:
             self.isotrop = True
             if isinstance(spacing_dict, str):
                 spacing_dict = Symbol(spacing_dict)
+            elif isinstance(spacing_dict, Symbol):
+                pass # leave spacing_dict as it is
             elif spacing_dict <= 0:
                 raise InvalidGrid('Spacing value must be positive.')
             self._data = spacing_dict

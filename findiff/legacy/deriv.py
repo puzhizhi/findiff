@@ -4,12 +4,12 @@ import numpy as np
 import scipy.sparse
 
 from findiff.core.stencils import Stencil, SymmetricStencil, ForwardStencil, BackwardStencil, StandardStencilFactory, \
-    StencilFactory
+    StencilFactory, StencilSet
 from findiff.core.grids import Spacing
 from findiff.core.algebraic import Algebraic, Numberlike, Add, Mul, Operation
 from findiff.core.deriv import PartialDerivative
 from findiff.core.grids import EquidistantGrid
-from findiff.core.reprs import matrix_repr
+from findiff.core.reprs import matrix_repr, stencils_repr
 from findiff.core.stencils import StandardStencilSet
 from findiff.legacy.pde import BoundaryConditions
 
@@ -30,7 +30,7 @@ def deprecation_warning(what):
         logger.warning(msg)
 
 
-class FinDiff(Algebraic):
+class FinDiff(PartialDerivative):
     """ A representation of a general linear differential operator expressed in finite differences.
 
         FinDiff objects can be added with other FinDiff objects. They can be multiplied by
@@ -100,21 +100,22 @@ class FinDiff(Algebraic):
 
         deprecation_warning('FinDiff')
 
-        super(FinDiff, self).__init__()
-        self.add_handler = DirtyAdd
-        self.mul_handler = DirtyMul
-        self.acc = 2
-
-        if 'acc' in kwargs:
-            self.acc = kwargs['acc']
-
         degrees, spacings = self._parse_args(args)
+        super(FinDiff, self).__init__(degrees)
+
         self.partial = PartialDerivative(degrees)
 
         # The old FinDiff API does not fully specify the grid.
         # So use a dummy-grid for all non-specified values:
         self.grid = EquidistantGrid.from_spacings(max(degrees.keys()) + 1, spacings)
         self._user_specified_spacings = spacings
+
+        self.add_handler = DirtyAdd
+        self.mul_handler = DirtyMul
+        self.acc = 2
+
+        if 'acc' in kwargs:
+            self.acc = kwargs['acc']
 
     def __call__(self, f, acc=None):
         self.acc = acc or self.acc
@@ -131,15 +132,16 @@ class FinDiff(Algebraic):
             # update this information. In particular, we now know the exact
             # number of space dimensions:
             self.grid = EquidistantGrid.from_shape_and_spacings(shape, self._user_specified_spacings)
-        return self.partial.matrix_repr(self.grid, acc)
+        return matrix_repr(self.partial, grid=self.grid, acc=acc)
 
     def stencil(self, shape):
         if shape != self.grid.shape:
-            pass # TODO: continue here
+            pass # TODO: hm... not sure what I wanted to do here
         ndims = len(shape)
         spacing = Spacing({axis: 1 for axis in range(ndims)})
         for axis in self.partial.axes:
             spacing[axis] = self.grid.spacing(axis)
+        #return LegacyStandardStencilSet(self.partial, spacing, ndims, self.acc)
         return StandardStencilSet(self.partial, spacing, ndims, self.acc)
 
     def _parse_args(self, args):
@@ -189,7 +191,7 @@ class DirtyMixin:
         self.add_handler = DirtyAdd
         self.mul_handler = DirtyMul
 
-    def matrix(self, shape):
+    def matrix(self, shape, acc=2):
         deprecation_warning('Method "matrix"')
         if isinstance(self, Operation):
             left = self.left.matrix(shape)
@@ -197,13 +199,8 @@ class DirtyMixin:
             return self.operation(left, right)
         elif not isinstance(self, FinDiff):
             grid = EquidistantGrid.from_shape_and_spacings(shape, {})
-            return matrix_repr(self, grid, 2)
+            return matrix_repr(self, grid=grid, acc=acc)
         return self.matrix(shape)
-
-    def stencil(self, shape):
-        deprecation_warning('Method "stencil"')
-        dummy_grid = EquidistantGrid((0, 1, 5))
-        return StandardStencilSet(self, dummy_grid, 2, 2)
 
 
 class DirtyNumberlike(DirtyMixin, Numberlike):
@@ -345,7 +342,7 @@ def calc_coefs_standard(deriv, acc, scheme, symbolic=False):
         stencil = factory.create(BackwardStencil, deriv, 1, acc, symbolic)
     return {
         "coefficients": stencil.coefficients,
-        "offsets": stencil.offsets,
+        "offsets": [off[0] for off in stencil.offsets],
         "accuracy": acc
     }
 
@@ -626,6 +623,21 @@ class Laplacian(object):
             laplace_f += part(f)
 
         return laplace_f
+
+
+class LegacyStandardStencilSet(StandardStencilSet):
+
+    def __init__(self, stencil_set):
+        assert isinstance(stencil_set, StandardStencilSet)
+        self._stencils = stencil_set._stencils
+        self.ndims = stencil_set.ndims
+        self.inner_mask = None
+
+    def apply_all(self, arr):
+        return self.stencil_set.apply(arr)
+
+    def apply(self, arr, idx):
+        return self.stencil_set.apply(arr)[idx]
 
 
 def wrap_in_ndarray(value):

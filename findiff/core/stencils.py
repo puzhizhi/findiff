@@ -455,7 +455,7 @@ class StandardStencilSet(StencilSet):
         self.inner_mask = None
 
     def apply(self, arr):
-        if not self.inner_mask or not self.inner_mask.shape == arr.shape:
+        if self.inner_mask is None or not self.inner_mask.shape == arr.shape:
             self.inner_mask = self._determine_inner_mask(arr.shape)
         result = np.zeros_like(arr)
         masks_applied = np.zeros_like(arr, dtype=int)

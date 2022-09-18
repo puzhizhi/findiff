@@ -7,7 +7,7 @@ import findiff
 from findiff import FinDiff, BoundaryConditions, PDE, EquidistantGrid
 from findiff.conflicts import Coef, Identity
 from findiff.core.deriv import PartialDerivative
-from findiff.core.reprs import matrix_repr
+from findiff.api import matrix_repr
 
 findiff.__deprecation_warning__ = False
 
@@ -55,7 +55,7 @@ class TestFinDiff(unittest.TestCase):
 
         d2_dxdy = FinDiff((0, dx, 2), (1, dy, 2))
         actual = d2_dxdy.matrix(f.shape)
-        expected = matrix_repr(PartialDerivative({0: 2, 1: 2}),,
+        expected = matrix_repr(PartialDerivative({0: 2, 1: 2}), spacing=dx, shape=X.shape)
         assert_array_almost_equal(actual.toarray(), expected.toarray())
 
 
@@ -248,94 +248,6 @@ class OldFinDiffTest(unittest.TestCase):
         u1_ex = 2 * X - 2 * Y
 
         assert_array_almost_equal(u1, u1_ex)
-
-    def test_local_stencil_single_axis_center_1d(self):
-        x = np.linspace(0, 1, 50)
-        dx = x[1] - x[0]
-        u = x ** 3
-        d2_dx2 = FinDiff((0, dx, 2))
-
-        stl = d2_dx2.stencil(u.shape)
-        idx = 5
-        actual = stl.apply(u, idx)
-
-        d2u_dx2 = d2_dx2(u)
-        expected = d2u_dx2[idx]
-
-        self.assertAlmostEqual(expected, actual)
-
-        actual = stl.apply_all(u)
-        expected = d2u_dx2
-
-        np.testing.assert_array_almost_equal(expected, actual)
-
-    def test_local_stencil_single_axis_center_2d_compared_with_findiff(self):
-        n = 70
-        (X, Y), _, (dx, dy) = grid(2, n, -1, 1)
-
-        u = X ** 3 * Y ** 3
-
-        d4_dx2dy2 = FinDiff(1, dx, 2)
-        expected = d4_dx2dy2(u)
-
-        stl = d4_dx2dy2.stencil(u.shape)
-
-        actual = stl.apply_all(u)
-
-        np.testing.assert_array_almost_equal(expected, actual)
-
-    def test_local_stencil_operator_addition(self):
-        n = 100
-        (X, Y), _, (dx, dy) = grid(2, n, -1, 1)
-
-        u = X ** 3 + Y ** 3
-
-        d = FinDiff(0, dx, 2) + FinDiff(1, dy, 2)
-        expected = d(u)
-
-        stl = d.stencil(u.shape)
-
-        actual = stl.apply_all(u)
-        np.testing.assert_array_almost_equal(expected, actual)
-
-    def test_local_stencil_operator_mixed_partials(self):
-        x = np.linspace(0, 10, 101)
-        y = np.linspace(0, 10, 101)
-        X, Y = np.meshgrid(x, y, indexing='ij')
-        u = X * Y
-        dx = x[1] - x[0]
-        dy = y[1] - y[0]
-        d1x = FinDiff((0, dx), (1, dy))
-        stencil1 = d1x.stencil(u.shape)
-        du_dx = stencil1.apply_all(u)
-
-        np.testing.assert_array_almost_equal(np.ones_like(X), du_dx)
-
-    def test_local_stencil_operator_multiplication(self):
-        x = np.linspace(0, 10, 101)
-        y = np.linspace(0, 10, 101)
-        X, Y = np.meshgrid(x, y, indexing='ij')
-        u = X * Y
-        dx = x[1] - x[0]
-        dy = y[1] - y[0]
-        d1x = FinDiff(0, dx) * FinDiff(1, dy)
-        stencil1 = d1x.stencil(u.shape)
-        du_dx = stencil1.apply_all(u)
-
-        np.testing.assert_array_almost_equal(np.ones_like(X), du_dx)
-
-    def test_local_stencil_operator_with_coef(self):
-        x = np.linspace(0, 10, 101)
-        y = np.linspace(0, 10, 101)
-        X, Y = np.meshgrid(x, y, indexing='ij')
-        u = X * Y
-        dx = x[1] - x[0]
-        dy = y[1] - y[0]
-        d1x = Coef(2) * FinDiff(0, dx) * FinDiff(1, dy)
-        stencil1 = d1x.stencil(u.shape)
-        du_dx = stencil1.apply_all(u)
-
-        np.testing.assert_array_almost_equal(2 * np.ones_like(X), du_dx)
 
     def dict_almost_equal(self, d1, d2):
         self.assertEqual(len(d1), len(d2))

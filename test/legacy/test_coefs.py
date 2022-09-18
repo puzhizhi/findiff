@@ -26,9 +26,9 @@ class TestCoefs(unittest.TestCase):
         np.testing.assert_array_almost_equal(np.array([0, 1, 2, 3]), offs)
 
         coefs = c["backward"]["coefficients"]
-        np.testing.assert_array_almost_equal(np.array(([2, -5, 4, -1])[::-1]), coefs)
+        np.testing.assert_array_almost_equal([2, -5, 4, -1], coefs)
         offs = c["backward"]["offsets"]
-        np.testing.assert_array_almost_equal(np.array([-3, -2, -1, 0]), offs)
+        np.testing.assert_array_almost_equal([0, -1, -2, -3], offs)
 
     def test_order1_acc2(self):
         c = coefficients(deriv=1, acc=2)
@@ -44,9 +44,9 @@ class TestCoefs(unittest.TestCase):
         np.testing.assert_array_almost_equal(np.array([0, 1, 2]), offs)
 
         coefs = c["backward"]["coefficients"]
-        np.testing.assert_array_almost_equal(-np.array([-1.5, 2, -0.5])[::-1], coefs)
+        np.testing.assert_array_almost_equal([1.5, -2, 0.5], coefs)
         offs = c["backward"]["offsets"]
-        np.testing.assert_array_almost_equal(np.array([-2, -1, 0]), offs)
+        np.testing.assert_array_almost_equal(np.array([0, -1, -2]), offs)
 
     def test_order1_acc4(self):
         c = coefficients(deriv=1, acc=4)
@@ -61,9 +61,9 @@ class TestCoefs(unittest.TestCase):
         np.testing.assert_array_almost_equal(np.array([0, 1, 2, 3, 4]), offs)
 
         coefs = c["backward"]["coefficients"]
-        np.testing.assert_array_almost_equal(-np.array([-25 / 12, 4, -3, 4 / 3, -1 / 4])[::-1], coefs)
+        np.testing.assert_array_almost_equal([25 / 12, -4, 3, -4 / 3, 1 / 4], coefs)
         offs = c["backward"]["offsets"]
-        np.testing.assert_array_almost_equal(-np.array([0, 1, 2, 3, 4])[::-1], offs)
+        np.testing.assert_array_almost_equal([0, -1, -2, -3, -4], offs)
 
     def test_order2_acc4(self):
         c = coefficients(deriv=2, acc=4)
@@ -78,9 +78,9 @@ class TestCoefs(unittest.TestCase):
         np.testing.assert_array_almost_equal(np.array([0, 1, 2, 3, 4, 5]), offs)
 
         coefs = c["backward"]["coefficients"]
-        np.testing.assert_array_almost_equal(np.array([15 / 4, -77 / 6, 107 / 6, -13, 61 / 12, -5 / 6])[::-1], coefs)
+        np.testing.assert_array_almost_equal(np.array([15 / 4, -77 / 6, 107 / 6, -13, 61 / 12, -5 / 6]), coefs)
         offs = c["backward"]["offsets"]
-        np.testing.assert_array_almost_equal(-np.array([0, 1, 2, 3, 4, 5])[::-1], offs)
+        np.testing.assert_array_almost_equal(([0, -1, -2, -3, -4, -5]), offs)
 
     def test_calc_accuracy_central_deriv2_acc2(self):
         coefs = calc_coefs(2, [-1, 0, 1])
