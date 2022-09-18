@@ -10,12 +10,10 @@ externally.
 import numbers
 
 import numpy as np
-import scipy
 
 from findiff.core.algebraic import Algebraic, Mul
 from findiff.core.grids import Spacing, EquidistantGrid
-from findiff.core.stencils import StencilStore, ForwardStencil, SymmetricStencil, BackwardStencil, StencilSet
-from findiff.utils import long_indices_as_ndarray, to_long_index
+from findiff.core.stencils import StandardStencilSet
 
 
 class PartialDerivative(Algebraic):
@@ -111,60 +109,8 @@ class PartialDerivative(Algebraic):
             spacing = Spacing({axis: grid.spacing(axis) for axis in self.axes})
         else:
             spacing = grid_or_spacing
-        stencil_set = StencilSet(self, spacing, arr.ndim, acc)
+        stencil_set = StandardStencilSet(self, spacing, arr.ndim, acc)
         return stencil_set.apply(arr)
-
-    def matrix_repr(self, grid, acc):
-        """Returns the matrix representation of the partial derivative on a given grid."""
-
-        long_indices_nd = long_indices_as_ndarray(grid.shape)
-
-        mats = []
-        for axis in self.axes:
-            deriv = self.degree(axis)
-            siz = np.prod(grid.shape)
-            mat = scipy.sparse.lil_matrix((siz, siz))
-
-            center, forward, backward = [StencilStore.get_stencil(
-                stype, deriv, grid.spacing(axis), acc)
-                for stype in (SymmetricStencil, ForwardStencil, BackwardStencil)]
-
-            for stencil in (center, forward, backward):
-
-                # translate offsets of given scheme to long format
-                offsets_long = []
-                offsets = np.array([off[0] for off in stencil.offsets])
-                for o_1d in offsets:
-                    o_nd = np.zeros(grid.ndims)
-                    o_nd[axis] = o_1d
-                    o_long = to_long_index(o_nd, grid.shape)
-                    offsets_long.append(o_long)
-
-                if type(stencil) == SymmetricStencil:
-                    nside = np.max(np.abs(offsets))
-                    multi_slice = [slice(None, None)] * grid.ndims
-                    multi_slice[axis] = slice(nside, -nside)
-                    Is = long_indices_nd[tuple(multi_slice)].reshape(-1)
-                elif type(stencil) == ForwardStencil:
-                    multi_slice = [slice(None, None)] * grid.ndims
-                    multi_slice[axis] = slice(0, nside)
-                    Is = long_indices_nd[tuple(multi_slice)].reshape(-1)
-                else:
-                    multi_slice = [slice(None, None)] * grid.ndims
-                    multi_slice[axis] = slice(-nside, None)
-                    Is = long_indices_nd[tuple(multi_slice)].reshape(-1)
-
-                for o, c in zip(offsets_long, stencil.coefficients):
-                    mat[Is, Is + o] = c
-
-            # done with the axis, convert to csr_matrix for faster arithmetic
-            mats.append(scipy.sparse.csr_matrix(mat))
-
-        # return the matrix product
-        mat = mats[0]
-        for i in range(1, len(mats)):
-            mat = mat.dot(mats[i])
-        return mat
 
     def _validate_degrees(self, degrees):
         assert isinstance(degrees, dict)

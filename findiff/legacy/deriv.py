@@ -9,8 +9,8 @@ from findiff.core.grids import Spacing
 from findiff.core.algebraic import Algebraic, Numberlike, Add, Mul, Operation
 from findiff.core.deriv import PartialDerivative
 from findiff.core.grids import EquidistantGrid
-from findiff.core.matrix import matrix_repr
-from findiff.core.stencils import StencilSet
+from findiff.core.reprs import matrix_repr
+from findiff.core.stencils import StandardStencilSet
 from findiff.legacy.pde import BoundaryConditions
 
 
@@ -140,7 +140,7 @@ class FinDiff(Algebraic):
         spacing = Spacing({axis: 1 for axis in range(ndims)})
         for axis in self.partial.axes:
             spacing[axis] = self.grid.spacing(axis)
-        return StencilSet(self.partial, spacing, ndims, self.acc)
+        return StandardStencilSet(self.partial, spacing, ndims, self.acc)
 
     def _parse_args(self, args):
         assert len(args) > 0
@@ -203,7 +203,7 @@ class DirtyMixin:
     def stencil(self, shape):
         deprecation_warning('Method "stencil"')
         dummy_grid = EquidistantGrid((0, 1, 5))
-        return StencilSet(self, dummy_grid, 2, 2)
+        return StandardStencilSet(self, dummy_grid, 2, 2)
 
 
 class DirtyNumberlike(DirtyMixin, Numberlike):

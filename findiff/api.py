@@ -9,7 +9,7 @@
 """
 import numbers
 
-import findiff.core.matrix
+import findiff.core.reprs
 import findiff.legacy
 from findiff.core.grids import EquidistantGrid
 from findiff.core.algebraic import Algebraic, Numberlike, Operation
@@ -18,7 +18,7 @@ from findiff.core.exceptions import InvalidGrid, InvalidArraySize
 
 __all__ = ['Diff', 'Coef', 'matrix_repr', 'Identity', 'coefficients']
 
-from findiff.core.stencils import StencilSet
+from findiff.core.stencils import StandardStencilSet
 
 
 class Diff(PartialDerivative):
@@ -181,7 +181,7 @@ def matrix_repr(expr, shape=None, spacings=None, acc=2):
 
 def stencils_repr(expr, spacing, ndims, acc=2):
     if isinstance(expr, PartialDerivative):
-        return StencilSet(expr, spacing, ndims, acc)
+        return StandardStencilSet(expr, spacing, ndims, acc)
     else:
         pass
 

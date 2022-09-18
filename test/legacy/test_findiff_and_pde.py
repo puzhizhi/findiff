@@ -7,7 +7,7 @@ import findiff
 from findiff import FinDiff, BoundaryConditions, PDE, EquidistantGrid
 from findiff.conflicts import Coef, Identity
 from findiff.core.deriv import PartialDerivative
-from findiff.core.matrix import matrix_repr
+from findiff.core.reprs import matrix_repr
 
 findiff.__deprecation_warning__ = False
 

@@ -388,6 +388,48 @@ class StencilFactory:
 
 
 class StencilSet:
+
+    def __init__(self, stencils):
+        self._stencils = stencils
+        self.ndims = len(list(stencils.keys())[0])
+
+    def __add__(self, other):
+        assert isinstance(other, StencilSet)
+        stencils = {}
+        for char_pt, self_stencil in self.as_dict().items():
+            stencils[char_pt] = self_stencil + other[char_pt]
+        return StencilSet(stencils)
+
+    def __mul__(self, other):
+        assert isinstance(other, StencilSet)
+        stencils = {}
+        for char_pt, self_stencil in self.as_dict().items():
+            stencils[char_pt] = self_stencil * other[char_pt]
+        return StencilSet(stencils)
+
+    def as_dict(self):
+        return self._stencils
+
+    def __getitem__(self, char_pt):
+        return self._stencils[char_pt]
+
+    def __getitem__(self, char_pt):
+        return self.as_dict()[tuple(char_pt)]
+
+    def __eq__(self, other):
+        for key, stl in self.as_dict().items():
+            if not (stl == other[key]):
+                return False
+        return True
+
+    def __repr__(self):
+        return self.__str__()
+
+    def __str__(self):
+        return str(self.as_dict())
+
+
+class StandardStencilSet(StencilSet):
     """
     Has the complete set of standard stencils for a given grid for a given partial derivative.
 
@@ -411,15 +453,6 @@ class StencilSet:
         self._stencils = self._create_stencils(acc, ndims, partial, spacing)
         self.ndims = ndims
         self.inner_mask = None
-
-    def __getitem__(self, char_pt):
-        return self._stencils[tuple(char_pt)]
-
-    def __eq__(self, other):
-        for key, stl in self._stencils.items():
-            if not (stl == other[key]):
-                return False
-        return True
 
     def apply(self, arr):
         if not self.inner_mask or not self.inner_mask.shape == arr.shape:
@@ -545,6 +578,27 @@ class StencilSet:
             m_off[axis] = off[0]
             new_offsets.append(tuple(m_off))
         return Stencil(new_offsets, stencil.coefficients)
+
+
+class TrivialStencilSet(StencilSet):
+
+    def __init__(self, value, ndims):
+        self.ndims = ndims
+        self.value = value
+        self.char_pts = list(product(('L', 'C', 'H'), repeat=ndims))
+        only_offset = tuple([0] * self.ndims)
+        self._stencil = Stencil([only_offset], [self.value])
+
+    def __getitem__(self, char_pt):
+
+        # Always return the same stencil, independent of characteristic point:
+        return self._stencil
+
+    def as_dict(self):
+        return {char_pt: self._stencil for char_pt in self.char_pts}
+
+    def apply(self, arr):
+        return self.value * arr
 
 
 class StencilStore:

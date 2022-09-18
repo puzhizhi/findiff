@@ -6,7 +6,7 @@ from numpy.testing import assert_allclose
 from sympy import Rational, Symbol, simplify
 
 from findiff.core.deriv import PartialDerivative
-from findiff.core.stencils import Stencil, StandardStencilFactory, SymmetricStencil, StencilSet, StencilFactory
+from findiff.core.stencils import Stencil, StandardStencilFactory, SymmetricStencil, StandardStencilSet, StencilFactory
 from findiff.core.grids import Spacing
 
 # Useful for debugging printouts of arrays
@@ -313,7 +313,7 @@ class IntegrationTestsStencilSet(unittest.TestCase):
         spacing = Spacing({0: 1})
         ndims = 1
         acc = 2
-        stencil_set = StencilSet(pd, spacing, ndims, acc)
+        stencil_set = StandardStencilSet(pd, spacing, ndims, acc)
 
         stencil = stencil_set[('C',)]
         self.assertEqual(
@@ -339,7 +339,7 @@ class IntegrationTestsStencilSet(unittest.TestCase):
         f = x**3
         pd = PartialDerivative({0: 2})
         spacing = Spacing({0: dx})
-        stencil_set = StencilSet(pd, spacing, ndims=1, acc=2)
+        stencil_set = StandardStencilSet(pd, spacing, ndims=1, acc=2)
 
         actual = stencil_set.apply(f)
 
@@ -352,7 +352,7 @@ class IntegrationTestsStencilSet(unittest.TestCase):
         f = X
         pd = PartialDerivative({0: 1})
         spacing = Spacing({0: dx, 1: dy})
-        stencil_set = StencilSet(pd, spacing, ndims=2, acc=2)
+        stencil_set = StandardStencilSet(pd, spacing, ndims=2, acc=2)
 
         actual = stencil_set.apply(f)
 
@@ -365,7 +365,7 @@ class IntegrationTestsStencilSet(unittest.TestCase):
         f = X*Y
         pd = PartialDerivative({0: 1, 1: 1})
         spacing = Spacing({0: dx, 1: dy})
-        stencil_set = StencilSet(pd, spacing, ndims=2, acc=2)
+        stencil_set = StandardStencilSet(pd, spacing, ndims=2, acc=2)
 
         actual = stencil_set.apply(f)
 

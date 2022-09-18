@@ -4,7 +4,7 @@ import numpy as np
 import sympy
 from numpy.testing import assert_array_almost_equal
 
-import findiff.core.matrix
+import findiff.core.reprs
 from findiff import Diff, EquidistantGrid, Spacing
 from findiff import InvalidGrid, InvalidArraySize
 from findiff.api import matrix_repr, stencils_repr

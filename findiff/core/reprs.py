@@ -3,8 +3,9 @@ import scipy
 
 from findiff.core.algebraic import Numberlike, Operation
 from findiff.core.deriv import PartialDerivative
-from findiff.core.stencils import StencilStore, SymmetricStencil, ForwardStencil, BackwardStencil
-from findiff.utils import long_indices_as_ndarray, to_long_index, require_parameter
+from findiff.core.stencils import StencilStore, SymmetricStencil, ForwardStencil, BackwardStencil, StandardStencilSet, \
+    TrivialStencilSet
+from findiff.utils import long_indices_as_ndarray, to_long_index, require_parameter, require_exactly_one_parameter
 from test.core import DEFAULT_ACCURACY
 
 
@@ -12,7 +13,7 @@ def matrix_repr(expr, **kwargs):
     """Returns the matrix representation of a given differential operator an a grid."""
     # shape, spacing=None, grid=None, acc=2
 
-    spacing, shape, acc = _parse_kwargs(**kwargs)
+    spacing, shape, acc = _parse_matrix_repr_kwargs(**kwargs)
 
     if isinstance(expr, PartialDerivative):
         return _matrix_expr_of_partial_derivative(expr, spacing, shape, acc)
@@ -26,6 +27,22 @@ def matrix_repr(expr, **kwargs):
     elif isinstance(expr, Operation):
         left_result = matrix_repr(expr.left, shape=shape, spacing=spacing, acc=acc)
         right_result = matrix_repr(expr.right, shape=shape, spacing=spacing, acc=acc)
+        return expr.operation(left_result, right_result)
+    else:
+        raise TypeError('Cannot calculate matrix representation of type %s' % type(expr).__name__)
+
+
+def stencils_repr(expr, **kwargs):
+
+    spacing, ndims, acc = _parse_stencils_repr_kwargs(**kwargs)
+
+    if isinstance(expr, PartialDerivative):
+        return StandardStencilSet(expr, spacing, ndims, acc)
+    elif isinstance(expr, Numberlike):
+        return TrivialStencilSet(expr.value, ndims)
+    elif isinstance(expr, Operation):
+        left_result = stencils_repr(expr.left, ndims=ndims, spacing=spacing, acc=acc)
+        right_result = stencils_repr(expr.right, ndims=ndims, spacing=spacing, acc=acc)
         return expr.operation(left_result, right_result)
     else:
         raise TypeError('Cannot calculate matrix representation of type %s' % type(expr).__name__)
@@ -83,22 +100,29 @@ def _matrix_expr_of_partial_derivative(partial, spacing, shape, acc):
     return mat
 
 
-def _parse_kwargs(**kwargs):
+def _parse_matrix_repr_kwargs(**kwargs):
+    found_para = require_exactly_one_parameter(['spacing', 'grid'], kwargs, 'matrix_repr')
 
-    if 'spacing' in kwargs and 'grid' in kwargs:
-        raise ValueError('matrix_repr: Either give `spacing` or `grid`, not both.')
-
-    if 'spacing' not in kwargs and 'grid' not in kwargs:
-        raise ValueError('matrix_repr: Must give `spacing` or `grid`.')
-
-    if 'spacing' in kwargs:
-        spacing = kwargs['spacing']
-        require_parameter('shape', kwargs, 'matrix_repr')
-        shape = kwargs['shape']
+    if found_para == 'spacing':
+        spacing = kwargs[found_para]
+        shape = require_parameter('shape', kwargs, 'matrix_repr')
     else: # grid given
-        grid = kwargs['grid']
+        grid = kwargs[found_para]
         shape = grid.shape
         spacing = grid.to_spacing()
     acc = kwargs.get('acc', DEFAULT_ACCURACY)
-
     return spacing, shape, acc
+
+
+def _parse_stencils_repr_kwargs(**kwargs):
+    ## spacing, ndims, acc
+    found_para = require_exactly_one_parameter(['spacing', 'grid'], kwargs, 'stencil_repr')
+    if found_para == 'spacing':
+        spacing = kwargs[found_para]
+        ndims = require_parameter('ndims', kwargs, 'stencil_repr')
+    else: # found grid
+        grid = kwargs[found_para]
+        spacing = grid.to_spacing()
+        ndims = grid.ndims
+    acc = kwargs.get('acc', DEFAULT_ACCURACY)
+    return spacing, ndims, acc
