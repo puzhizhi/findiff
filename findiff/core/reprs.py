@@ -1,17 +1,67 @@
 import numpy as np
 import scipy
 
+from findiff.core import DEFAULT_ACCURACY
 from findiff.core.algebraic import Numberlike, Operation
 from findiff.core.deriv import PartialDerivative
 from findiff.core.stencils import StencilStore, SymmetricStencil, ForwardStencil, BackwardStencil, StandardStencilSet, \
     TrivialStencilSet
 from findiff.utils import long_indices_as_ndarray, to_long_index, require_parameter, require_exactly_one_parameter
-from test.core import DEFAULT_ACCURACY
 
 
 def matrix_repr(expr, **kwargs):
-    """Returns the matrix representation of a given differential operator an a grid."""
-    # shape, spacing=None, grid=None, acc=2
+    """Returns the matrix representation of a given differential operator an a grid.
+
+    Parameters
+    ----------
+    expr : Algebraic
+         A general differential operator. Can be a partial derivative, a number,
+         an array or an algebraic expression.
+
+    kwargs :
+
+        Keyword arguments defining the numerical grid. There are two mutually exclusive
+        ways to specify this:
+
+        *Either* specify `grid` (an `EquidistantGrid` instance), *or* specify both
+        `spacing` (a `Spacing` instance) and `shape` (tuple of ints, the shape of the
+        grid).
+
+        Optionally, specify `acc` for setting the accuracy order. If not given, defaults
+        to findiff.DEFAULT_ACCURACY.
+
+    Returns
+    -------
+    out : scipy sparse matrix
+        The matrix representation of the differential operator.
+
+    Raises
+    ------
+    ValueError
+        in case of invalid combination of keyword arguments.
+
+    Examples
+    --------
+
+    The following example gives the matrix representation for the operator
+
+    .. math::
+        \frac{\partial}{\partial x} + 2 \frac{\partial^2}{\partial y^2}
+
+    for a grid spacing of 1 along all axes.
+
+    >>> expr = PartialDerivative({0: 1}) + 2 * PartialDerivative({1: 2})
+    >>> matrix = matrix_repr(expr, spacing=Spacing(1), shape=(10, 10))
+    >>> matrix.toarray()
+
+        Out: [[  6. -10.   8. ...   0.   0.   0.]
+             [  2.  -2.   2. ...   0.   0.   0.]
+             [  0.   2.  -2. ...   0.   0.   0.]
+             ...
+             [  0.   0.   0. ...  -2.   2.   0.]
+             [  0.   0.   0. ...   2.  -2.   2.]
+             [  0.   0.   0. ...   8. -10.   6.]]
+    """
 
     spacing, shape, acc = _parse_matrix_repr_kwargs(**kwargs)
 

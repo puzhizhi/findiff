@@ -4,9 +4,12 @@ import numpy as np
 from numpy.testing import assert_array_equal, assert_array_almost_equal
 
 from findiff import EquidistantGrid, Spacing, Coef
-from findiff.core.algebraic import Numberlike, Add, Coordinate
-from findiff.core.deriv import PartialDerivative
-from findiff.core.reprs import matrix_repr, stencils_repr
+from findiff.core import Numberlike, Add
+from findiff.core import PartialDerivative
+from findiff.core import matrix_repr, stencils_repr
+
+
+#np.set_printoptions(edgeitems=30, linewidth=100000, formatter=dict(float=lambda x: "%.3f" % x))
 
 
 class TestMatrixRepr(unittest.TestCase):
@@ -105,6 +108,11 @@ class TestMatrixRepr(unittest.TestCase):
     def test_unknown_type_raises_typeerror(self):
         with self.assertRaises(TypeError):
             matrix_repr({}, grid=EquidistantGrid.from_spacings({0: 1}), acc=2)
+
+    def test_add_and_mult(self):
+        laplacian = PartialDerivative({0: 2}) + 2 * PartialDerivative({1: 2})
+        actual = matrix_repr(laplacian, spacing=Spacing(1), shape=(10, 10))
+        print(actual.toarray())
 
 
 class TestStencilsRepr(unittest.TestCase):

@@ -5,9 +5,9 @@ import numpy as np
 from numpy.testing import assert_allclose
 from sympy import Rational, Symbol, simplify
 
-from findiff.core.deriv import PartialDerivative
-from findiff.core.stencils import Stencil, StandardStencilFactory, SymmetricStencil, StandardStencilSet, StencilFactory
-from findiff.core.grids import Spacing
+from findiff.core import PartialDerivative
+from findiff.core import Stencil, StandardStencilFactory, SymmetricStencil, StandardStencilSet, StencilFactory
+from findiff.core import Spacing
 
 # Useful for debugging printouts of arrays
 np.set_printoptions(edgeitems=30, linewidth=100000, formatter=dict(float=lambda x: "%.3f" % x))

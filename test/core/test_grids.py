@@ -1,6 +1,6 @@
 import unittest
 
-from findiff import EquidistantGrid
+from findiff.core import EquidistantGrid
 
 
 class TestEquidistantGrid(unittest.TestCase):

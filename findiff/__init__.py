@@ -29,3 +29,4 @@ from .legacy import Gradient, Divergence, Laplacian, Curl
 from .legacy import PDE, BoundaryConditions
 
 from .conflicts import Coef, Identity
+

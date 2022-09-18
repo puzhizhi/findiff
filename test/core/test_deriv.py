@@ -4,10 +4,10 @@ import unittest
 import pytest
 from numpy.testing import assert_array_almost_equal
 
-from findiff.core.algebraic import Coordinate
-from findiff.core.deriv import PartialDerivative
-from findiff import EquidistantGrid
-from findiff.core.grids import Spacing
+from findiff.core import Coordinate
+from findiff.core import PartialDerivative
+from findiff.core import EquidistantGrid
+from findiff.core import Spacing
 
 
 class TestsPartialDerivative(unittest.TestCase):
