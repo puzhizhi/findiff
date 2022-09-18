@@ -16,8 +16,10 @@ __deprecation_warning__ = True
 import findiff.legacy as legacy
 import findiff.api as api
 
-from .api import Diff, EquidistantGrid
-from .core import Stencil, InvalidGrid, InvalidArraySize
+from .api import Diff
+from .core.grids import EquidistantGrid, Spacing
+from .core.stencils import Stencil
+from .core.exceptions import InvalidGrid, InvalidArraySize
 from .symbolics import Equation
 
 

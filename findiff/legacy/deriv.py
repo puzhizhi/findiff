@@ -3,11 +3,15 @@ import logging
 import numpy as np
 import scipy.sparse
 
-from findiff.core.stencils import Stencil
+from findiff.core.stencils import Stencil, SymmetricStencil, ForwardStencil, BackwardStencil, StandardStencilFactory, \
+    StencilFactory
+from findiff.core.grids import Spacing
 from findiff.core.algebraic import Algebraic, Numberlike, Add, Mul, Operation
-from findiff.core.deriv import PartialDerivative, matrix_repr, EquidistantGrid
-from findiff.core.stencils import StencilSet, SymmetricStencil1D, ForwardStencil1D, BackwardStencil1D
-from .pde import BoundaryConditions
+from findiff.core.deriv import PartialDerivative
+from findiff.core.grids import EquidistantGrid
+from findiff.core.matrix import matrix_repr
+from findiff.core.stencils import StencilSet
+from findiff.legacy.pde import BoundaryConditions
 
 
 __all__ = [
@@ -132,7 +136,11 @@ class FinDiff(Algebraic):
     def stencil(self, shape):
         if shape != self.grid.shape:
             pass # TODO: continue here
-        return StencilSet(self.partial, self.grid, self.acc)
+        ndims = len(shape)
+        spacing = Spacing({axis: 1 for axis in range(ndims)})
+        for axis in self.partial.axes:
+            spacing[axis] = self.grid.spacing(axis)
+        return StencilSet(self.partial, spacing, ndims, self.acc)
 
     def _parse_args(self, args):
         assert len(args) > 0
@@ -189,13 +197,13 @@ class DirtyMixin:
             return self.operation(left, right)
         elif not isinstance(self, FinDiff):
             grid = EquidistantGrid.from_shape_and_spacings(shape, {})
-            return matrix_repr(self, 2, grid)
+            return matrix_repr(self, grid, 2)
         return self.matrix(shape)
 
     def stencil(self, shape):
         deprecation_warning('Method "stencil"')
         dummy_grid = EquidistantGrid((0, 1, 5))
-        return StencilSet(self, dummy_grid, 2)
+        return StencilSet(self, dummy_grid, 2, 2)
 
 
 class DirtyNumberlike(DirtyMixin, Numberlike):
@@ -318,7 +326,8 @@ def coefficients(deriv, acc=None, offsets=None, symbolic=False):
 
 
 def calc_coefs(deriv, offsets, symbolic=False):
-    stencil = Stencil(offsets, {(deriv,): 1}, symbolic=symbolic)
+    factory = StencilFactory()
+    stencil = factory.create(offsets, {(deriv,): 1}, Spacing(1), symbolic=symbolic)
     return {
         "coefficients": [stencil.coefficient(o) for o in offsets],
         "offsets": stencil.offsets,
@@ -327,12 +336,13 @@ def calc_coefs(deriv, offsets, symbolic=False):
 
 
 def calc_coefs_standard(deriv, acc, scheme, symbolic=False):
+    factory = StandardStencilFactory()
     if scheme == 'center':
-        stencil = SymmetricStencil1D(deriv, 1, acc, symbolic)
+        stencil = factory.create(SymmetricStencil, deriv, 1, acc, symbolic)
     elif scheme == 'forward':
-        stencil = ForwardStencil1D(deriv, 1, acc, symbolic)
+        stencil = factory.create(ForwardStencil, deriv, 1, acc, symbolic)
     elif scheme == 'backward':
-        stencil = BackwardStencil1D(deriv, 1, acc, symbolic)
+        stencil = factory.create(BackwardStencil, deriv, 1, acc, symbolic)
     return {
         "coefficients": stencil.coefficients,
         "offsets": stencil.offsets,

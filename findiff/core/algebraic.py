@@ -142,3 +142,18 @@ class Add(Operation):
             left_result = self.left.apply(target, self.operation)
 
         return left_result + right_result
+
+
+class Coordinate(Algebraic):
+
+    def __init__(self, axis):
+        assert axis >= 0 and axis == int(axis)
+        super(Coordinate, self).__init__()
+        self.name = 'x_{%d}' % axis
+        self.axis = axis
+
+    def __eq__(self, other):
+        return self.axis == other.axis
+
+    def apply(self, f, grid, *args, **kwargs):
+        return grid.meshed_coords[self.axis] * f

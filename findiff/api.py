@@ -9,10 +9,12 @@
 """
 import numbers
 
+import findiff.core.matrix
 import findiff.legacy
-from findiff import core
+from findiff.core.grids import EquidistantGrid
 from findiff.core.algebraic import Algebraic, Numberlike, Operation
-from findiff.core.deriv import PartialDerivative, EquidistantGrid, InvalidGrid, InvalidArraySize
+from findiff.core.deriv import PartialDerivative
+from findiff.core.exceptions import InvalidGrid, InvalidArraySize
 
 __all__ = ['Diff', 'Coef', 'matrix_repr', 'Identity', 'coefficients']
 
@@ -174,16 +176,14 @@ def matrix_repr(expr, shape=None, spacings=None, acc=2):
         right_result = matrix_repr(expr.right, shape, spacings, acc)
         return expr.operation(left_result, right_result)
     else:
-        return core.deriv.matrix_repr(expr, acc, grid)
+        return findiff.core.matrix.matrix_repr(expr, grid, acc)
 
 
-def stencils_repr(expr, grid):
+def stencils_repr(expr, spacing, ndims, acc=2):
     if isinstance(expr, PartialDerivative):
-        return StencilSet(expr, grid, acc=2)
+        return StencilSet(expr, spacing, ndims, acc)
     else:
         pass
-
-
 
 
 class Coef(Numberlike):

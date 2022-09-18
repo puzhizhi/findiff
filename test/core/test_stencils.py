@@ -2,24 +2,99 @@ import unittest
 from itertools import product
 
 import numpy as np
-from numpy.testing import assert_array_almost_equal
+from numpy.testing import assert_allclose
 from sympy import Rational, Symbol, simplify
 
-from findiff import FinDiff
-from findiff.conflicts import Identity
-from findiff import Stencil
-from findiff.core.deriv import PartialDerivative, EquidistantGrid
-from findiff.core.stencils import Stencil1D, SymmetricStencil1D, ForwardStencil1D, BackwardStencil1D, StencilSet, \
-    GenericStencil
-from findiff.symbolics.deriv import DerivativeSymbol
+from findiff.core.deriv import PartialDerivative
+from findiff.core.stencils import Stencil, StandardStencilFactory, SymmetricStencil, StencilSet, StencilFactory
+from findiff.core.grids import Spacing
+
+# Useful for debugging printouts of arrays
+np.set_printoptions(edgeitems=30, linewidth=100000, formatter=dict(float=lambda x: "%.3f" % x))
 
 
-class TestStencilOperations(unittest.TestCase):
+class UnitTestsStencil(unittest.TestCase):
+
+    def test_create_stencil_from_constructor_stores_parameters(self):
+        offsets = [(-1,), (0,), (1,)]
+        coefs = [1., -2., 1.]
+        stencil = Stencil(offsets, coefs)
+        self.assertEqual(offsets, stencil.offsets)
+        self.assertEqual(coefs, stencil.coefficients)
+
+    def test_stencils_can_be_added(self):
+        stencil_1 = Stencil({(0, -1): 1., (0, 0): -2., (0, 1): 1.})
+        stencil_2 = Stencil({(0, -2): 1., (0, 0): -1., (0, 1): 1.})
+        result = stencil_1 + stencil_2
+        self.assertEqual(
+            {(0, -2): 1, (0, -1): 1., (0, 0): -3., (0, 1): 2.},
+            result.as_dict()
+        )
+
+    def test_stencil_can_be_applied(self):
+        x = np.linspace(0, 1, 100)
+        f = x ** 3
+
+        factory = StandardStencilFactory()
+        acc = 2
+        dx = x[1] - x[0]
+        deriv = 2
+        stencil = factory.create(SymmetricStencil, deriv, dx, acc)
+
+        mask = np.full_like(x, fill_value=False, dtype=bool)
+        mask[1:-1] = True
+
+        actual = stencil.apply(f, mask)
+        assert_allclose(actual[1:-1], 6*x[1:-1], rtol=1.E-6)
+
+
+class IntegrationTestsStencil(unittest.TestCase):
+    ...
+
+
+class UnitTestsStencilFactory(unittest.TestCase):
+    ...
+
+
+class IntegrationTestsStencilFactory(unittest.TestCase):
+
+    def test_create_symmetric_stencil(self):
+        factory = StandardStencilFactory()
+        deriv = 2
+        acc = 2
+        spacing = 1
+
+        stencil = factory.create(SymmetricStencil, deriv, spacing, acc)
+
+        self.assertTrue(SymmetricStencil, type(stencil))
+
+    def test_create_symmetric_stencil_correct_coefs(self):
+        factory = StandardStencilFactory()
+        stencil = factory.create(SymmetricStencil, deriv=2, spacing=1, acc=2)
+
+        self.assertEqual({(0,): -2, (-1,): 1, (1,): 1}, stencil.as_dict())
+
+
+class UnitTestsFlexStencilFactory(unittest.TestCase):
+    ...
+
+
+class IntegrationTestsFlexStencilFactory(unittest.TestCase):
+
+    def test_flexstencilfactory_creates_generic_stencil_1d(self):
+        factory = StencilFactory()
+        offsets = [(0,), (-1,), (1,)]
+        pds = {(2,): 1}  # this is 1 * d2_dx2
+        spacing = Spacing({0: 1})
+        stencil = factory.create(offsets, pds, spacing)
+        self.assertEqual({(0,): -2, (-1,): 1, (1,): 1}, stencil.as_dict())
 
     def test_solve_laplace_2d_with_5_points(self):
+
         offsets = [(-1, 0), (0, 0), (1, 0), (0, 1), (0, -1)]
 
-        stencil = Stencil(offsets, {(2, 0): 1, (0, 2): 1})
+        factory = StencilFactory()
+        stencil = factory.create(offsets, {(2, 0): 1, (0, 2): 1}, spacing=Spacing({0: 1, 1: 1}))
 
         expected = {
             (0, 0): -4,
@@ -32,7 +107,8 @@ class TestStencilOperations(unittest.TestCase):
     def test_solve_laplace_2d_with_9_points(self):
         offsets = [(-1, 0), (0, 0), (1, 0), (0, 1), (0, -1), (-2, 0), (2, 0), (0, -2), (0, 2)]
 
-        stencil = Stencil(offsets, {(2, 0): 1, (0, 2): 1})
+        factory = StencilFactory()
+        stencil = factory.create(offsets, {(2, 0): 1, (0, 2): 1}, spacing=Spacing({0: 1, 1: 1}))
 
         expected = {
             (0, 0): -5,
@@ -48,7 +124,8 @@ class TestStencilOperations(unittest.TestCase):
     def test_solve_laplace_2d_with_5_points_times_2(self):
         offsets = [(-1, 0), (0, 0), (1, 0), (0, 1), (0, -1)]
 
-        stencil = Stencil(offsets, {(2, 0): 2, (0, 2): 2})
+        factory = StencilFactory()
+        stencil = factory.create(offsets, {(2, 0): 2, (0, 2): 2}, spacing=Spacing({0: 1, 1: 1}))
 
         expected = {
             (0, 0): -8,
@@ -61,7 +138,8 @@ class TestStencilOperations(unittest.TestCase):
     def test_solve_laplace_2d_with_5_points_times_2_and_spacing(self):
         offsets = [(-1, 0), (0, 0), (1, 0), (0, 1), (0, -1)]
 
-        stencil = Stencil(offsets, {(2, 0): 2, (0, 2): 2}, spacings=(0.1, 0.1))
+        factory = StencilFactory()
+        stencil = factory.create(offsets, {(2, 0): 2, (0, 2): 2}, spacing=Spacing({0: 0.1, 1: 0.1}))
 
         expected = {
             (0, 0): -800,
@@ -83,7 +161,10 @@ class TestStencilOperations(unittest.TestCase):
         expected =  6*X + 6*Y
 
         offsets = [(-1, 0), (0, 0), (1, 0), (0, 1), (0, -1)]
-        stencil = Stencil(offsets, {(2, 0): 1, (0, 2): 1}, spacings=(dx, dy))
+
+        factory = StencilFactory()
+        stencil = factory.create(offsets, {(2, 0): 1, (0, 2): 1}, spacing=Spacing({0: dx, 1: dy}))
+
         at = (3, 4)
         actual = stencil(f, at)
         self.assertAlmostEqual(expected[at], actual)
@@ -98,7 +179,9 @@ class TestStencilOperations(unittest.TestCase):
         expected =  6*X + 6*Y
 
         offsets = [(0, 0), (1, 1), (-1, -1), (1, -1), (-1, 1)]
-        stencil = Stencil(offsets, {(2, 0): 1, (0, 2): 1}, spacings=(dx, dy))
+        factory = StencilFactory()
+        stencil = factory.create(offsets, {(2, 0): 1, (0, 2): 1}, spacing=Spacing({0: dx, 1: dy}))
+
         at = (3, 4)
         actual = stencil(f, at)
         self.assertAlmostEqual(expected[at], actual)
@@ -112,7 +195,9 @@ class TestStencilOperations(unittest.TestCase):
         f = X**3 + Y**3
 
         offsets = [(-1, 0), (0, 0), (1, 0), (0, 1), (0, -1)]
-        stencil = Stencil(offsets, {(2, 0): 1, (0, 2): 1}, spacings=(dx, dy))
+        factory = StencilFactory()
+        stencil = factory.create(offsets, {(2, 0): 1, (0, 2): 1}, spacing=Spacing({0: dx, 1: dy}))
+
         at = (0, 1)
         with self.assertRaises(Exception):
             stencil(f, at)
@@ -131,7 +216,9 @@ class TestStencilOperations(unittest.TestCase):
         expected =  4*X*Y*f
 
         offsets = [(0, 0), (1, 1), (-1, -1), (1, -1), (-1, 1)]
-        stencil = Stencil(offsets, partials={(1, 1): 1}, spacings=(dx, dy))
+        factory = StencilFactory()
+        stencil = factory.create(offsets, {(1, 1): 1}, spacing=Spacing({0: dx, 1: dy}))
+
         at = (3, 4)
         actual = stencil(f, at)
         self.assertAlmostEqual(expected[at], actual, places=5)
@@ -141,25 +228,12 @@ class TestStencilOperations(unittest.TestCase):
         f = x**3
         expected = 6*x
         offsets = list(range(-4, 5))
-        stencil = Stencil(offsets, partials={(2,): 1}, spacings=(x[1]-x[0],))
+        factory = StencilFactory()
+        stencil = factory.create(offsets, {(2,): 1}, spacing=Spacing({0: x[1]-x[0]}))
+
         at = 8,
         actual = stencil(f, at)
         self.assertAlmostEqual(expected[at], actual, places=5)
-
-    def tests_apply_stencil_on_multislice(self):
-        x = y = np.linspace(0, 1, 21)
-        dx = dy = x[1] - x[0]
-        X, Y = np.meshgrid(x, y, indexing='ij')
-
-        f = X ** 3 + Y ** 3
-        expected = 6*X + 6*Y
-
-        offsets = [(-1, 0), (0, 0), (1, 0), (0, 1), (0, -1)]
-        stencil = Stencil(offsets, {(2, 0): 1, (0, 2): 1}, spacings=(dx, dy))
-
-        on_slice = slice(1, -1), slice(1, -1)
-        actual = stencil(f, on=on_slice)
-        np.testing.assert_array_almost_equal(expected[on_slice], actual[on_slice])
 
     def tests_apply_stencil_on_mask(self):
         x = y = np.linspace(0, 1, 21)
@@ -170,47 +244,32 @@ class TestStencilOperations(unittest.TestCase):
         expected = 6*X + 6*Y
 
         offsets = [(-1, 0), (0, 0), (1, 0), (0, 1), (0, -1)]
-        stencil = Stencil(offsets, {(2, 0): 1, (0, 2): 1}, spacings=(dx, dy))
+        factory = StencilFactory()
+        stencil = factory.create(offsets, {(2, 0): 1, (0, 2): 1}, spacing=Spacing({0: dx, 1: dy}))
 
         mask = np.full_like(f, fill_value=False, dtype=bool)
         mask[1:-1, 1:-1] = True
         actual = stencil(f, on=mask)
         np.testing.assert_array_almost_equal(expected[mask], actual[mask])
 
-    def test_helmholtz_stencil_issue_60(self):
-        # This is a regression test for issue #60.
-
-        H = Identity() - FinDiff(0, 1, 2)
-
-        stencil_set = H.stencil((10,))
-
-        expected = {('L',): {(0,): -1.0, (1,): 5.0, (2,): -4.0, (3,): 1.0}, ('C',): {(-1,): -1.0, (0,): 3.0, (1,): -1.0},
-         ('H',): {(-3,): 1.0, (-2,): -4.0, (-1,): 5.0, (0,): -1.0}}
-
-        actual = stencil_set.as_dict()
-        self.assertEqual(len(expected), len(actual))
-        self.assertEqual(expected.keys(), actual.keys())
-        for key, expected_stencil in expected.items():
-            actual_stencil = actual[key]
-
-            self.assertEqual(expected_stencil.keys(), actual_stencil.keys())
-            for offset, expected_coef in expected_stencil.items():
-                actual_coef = actual_stencil[offset]
-                self.assertAlmostEqual(expected_coef, actual_coef)
-
     def test_stencil_1d_symbolic(self):
         offsets = [0, 1, 2]
-        stencil = Stencil(offsets, {(1,): 1}, symbolic=True)
+        factory = StencilFactory()
+        stencil = factory.create(offsets, {(1,): 1}, spacing=Spacing({0: 1}), symbolic=True)
+
         self.assertEqual(-Rational(3, 2), stencil[0])
 
     def test_stencil_2d_laplacian_symbolic(self):
         offsets = [(0, 0), (2, 0), (-2, 0), (0, 1), (0, -1)]
-        stencil = Stencil(offsets, {(2, 0): 1, (0,2): 1}, symbolic=True)
+        factory = StencilFactory()
+        stencil = factory.create(offsets, {(2, 0): 1, (0,2): 1}, spacing=Spacing({0: 1, 1: 1}), symbolic=True)
+
         self.assertEqual(-Rational(5, 2), stencil[(0, 0)])
 
-    def test_stencil_2d_laplacian_symbolic(self):
+    def test_stencil_2d_laplacian_symbolic_2(self):
         offsets = [(0, 0), (1, 0), (-1, 0), (0, 1), (0, -1)]
-        stencil = Stencil(offsets, {(2, 0): 1, (0,2): 1}, spacings=[r'\Delta x', r'\Delta y'], symbolic=True)
+        factory = StencilFactory()
+        stencil = factory.create(offsets, {(2, 0): 1, (0, 2): 1}, spacing=Spacing({0: r'\Delta x', 1: r'\Delta y'}), symbolic=True)
 
         dx, dy = Symbol(r'\Delta x'), Symbol(r'\Delta y')
 
@@ -219,174 +278,95 @@ class TestStencilOperations(unittest.TestCase):
     def test_stencil_2d_laplacian_symbolic_with_symbol_spacings(self):
         offsets = [(0, 0), (1, 0), (-1, 0), (0, 1), (0, -1)]
         dx, dy = Symbol(r'\Delta x'), Symbol(r'\Delta y')
-        stencil = Stencil(offsets, {(2, 0): 1, (0,2): 1}, spacings=[dx, dy], symbolic=True)
+        factory = StencilFactory()
+        stencil = factory.create(offsets, {(2, 0): 1, (0, 2): 1}, spacing=Spacing({0: dx, 1: dy}),
+                                 symbolic=True)
+
         self.assertEqual(-2/dx**2 - 2/dy**2, simplify(stencil[0, 0]))
 
     def test_stencil_2d_laplacian_symbolic_with_symbol_spacing(self):
         offsets = [(0, 0), (1, 0), (-1, 0), (0, 1), (0, -1)]
         dx = Symbol(r'\Delta')
-        stencil = Stencil(offsets, {(2, 0): 1, (0,2): 1}, spacings=dx, symbolic=True)
+        factory = StencilFactory()
+        stencil = factory.create(offsets, {(2, 0): 1, (0, 2): 1}, spacing=Spacing(dx),
+                                 symbolic=True)
+
         self.assertEqual(-4/dx**2, simplify(stencil[0, 0]))
-
-    def test_stencil_2d_laplacian_symbolic_with_symbol_spacing_as_expression(self):
-        offsets = [(0, 0), (1, 0), (-1, 0), (0, 1), (0, -1)]
-        dx = Symbol(r'\Delta')
-        stencil = Stencil(offsets, {(2, 0): 1, (0,2): 1}, spacings=dx, symbolic=True)
-        expr, symbols = stencil.as_expression()
-        self.assertEqual(str(expr), r'u[i_0 + 1, i_1]/\Delta**2 + u[i_0 - 1, i_1]/\Delta**2 + u[i_0, i_1 + 1]/\Delta**2 + u[i_0, i_1 - 1]/\Delta**2 - 4*u[i_0, i_1]/\Delta**2')
-        self.assertEqual(symbols['spacings'], [dx]*2)
-
-    def test_stencil_2d_laplacian_symbolic_as_expression_with_symbols(self):
-        offsets = [(0, 0), (1, 0), (-1, 0), (0, 1), (0, -1)]
-        dx = Symbol(r'\Delta')
-        stencil = Stencil(offsets, {(2, 0): 1, (0,2): 1}, spacings=dx, symbolic=True)
-        actual, _ = stencil.as_expression('u', 'ij')
-        self.assertEqual(str(actual), r'u[i + 1, j]/\Delta**2 + u[i - 1, j]/\Delta**2 + u[i, j + 1]/\Delta**2 + u[i, j - 1]/\Delta**2 - 4*u[i, j]/\Delta**2')
-
-    def test_discretize_helmholtz_1d(self):
-        stencil = Stencil(offsets=[-1, 0, 1], partials={(2,): 1}, spacings=[r'\Delta'], symbolic=True)
-        d2_dx2, symbols = stencil.as_expression(index_symbols=['n'])
-        n, = symbols['indices']
-        u = symbols['function']
-        helmholtz = d2_dx2 - u[n]
-        self.assertEqual(r'-u[n] + u[n + 1]/\Delta**2 + u[n - 1]/\Delta**2 - 2*u[n]/\Delta**2', str(helmholtz))
-
-    def test_apply_stencil_should_fail_in_symbolic_mode(self):
-        stencil = Stencil(offsets=[-1, 0, 1], partials={(2,): 1}, spacings=[r'\Delta'], symbolic=True)
-        with self.assertRaises(NotImplementedError) as e:
-            stencil(at=1)
-            self.assertEqual('NotImplementedError: __call__ cannot be used in symbolic mode.', str(e))
-
-    def test_stencil_using_derivativesymbol(self):
-        D = DerivativeSymbol
-        d = D(0, 2)
-        stencil = Stencil(offsets=[-1, 0, 1], partials=d, symbolic=True)
-        self.assertEqual(
-            Stencil(offsets=[-1, 0, 1], partials={(2,): 1}, symbolic=True).as_dict(),
-            stencil.as_dict()
-        )
-
-    def test_stencil_using_derivativesymbol_2d_laplace(self):
-        D = DerivativeSymbol
-        d = D(0, 2) + D(1, 2)
-        stencil = Stencil(offsets=[(0, 0), (1, 0), (-1, 0), (0, 1), (0, -1)], partials=d, symbolic=True)
-        self.assertEqual(
-            Stencil(offsets=[(0, 0), (1, 0), (-1, 0), (0, 1), (0, -1)], partials={(2, 0): 1, (0, 2): 1}, symbolic=True).as_dict(),
-            stencil.as_dict()
-        )
-
-    def test_stencil_using_derivativesymbol_2d_with_constant_factors(self):
-        D = DerivativeSymbol
-        d = D(0, 2) - 2 * D(1, 2)
-        stencil = Stencil(offsets=[(0, 0), (1, 0), (-1, 0), (0, 1), (0, -1)], partials=d, symbolic=True)
-        self.assertEqual(
-            Stencil(offsets=[(0, 0), (1, 0), (-1, 0), (0, 1), (0, -1)], partials={(2, 0): 1, (0, 2): -2}, symbolic=True).as_dict(),
-            stencil.as_dict()
-        )
-
-    def test_stencil_using_derivativesymbol_2d_with_constant_minus_one(self):
-        D = DerivativeSymbol
-        d = D(0, 2) - D(1, 2)
-        stencil = Stencil(offsets=[(0, 0), (1, 0), (-1, 0), (0, 1), (0, -1)], partials=d, symbolic=True)
-        self.assertEqual(
-            Stencil(offsets=[(0, 0), (1, 0), (-1, 0), (0, 1), (0, -1)], partials={(2, 0): 1, (0, 2): -1}, symbolic=True).as_dict(),
-            stencil.as_dict()
-        )
-
-    def test_binomial_expanded_without_simplify_does_not_combine(self):
-        D = DerivativeSymbol
-        d = (D(0) - D(1)) * (D(0) + D(1))
-        actual = d.expand()
-
-        with self.assertRaises(ValueError):
-            stencil = Stencil(offsets=[(0, 0), (1, 0), (-1, 0), (0, 1), (0, -1)], partials=d, symbolic=True)
-
-    def test_apply_stencil_mixed(self):
-        x = y = z = np.linspace(1-0.1, 1+0.1, 11)
-        dx = dy = dz = x[1] - x[0]
-        X, Y, Z = np.meshgrid(x, y, z, indexing='ij')
-
-        f = X**3*Y**2*Z
-        offsets = list(product([-1, 0, 1], repeat=3))
-        d3_dx2dy = Stencil(offsets, {(2, 1, 0): 1}, spacings=[dx, dy, dz])
-        expected = 12.  # f(1,1,1)
-        actual = d3_dx2dy(f, at=(5, 5, 5))
-        self.assertAlmostEqual(expected, actual)
 
     def test_symbolic_stencil(self):
         offsets = list(product([-1, 0, 1], repeat=3))
-        d3_dx2dy_sym = Stencil(offsets, {(2, 1, 0): 1}, spacings=[1, 1, 1], symbolic=True)
+        factory = StencilFactory()
+        d3_dx2dy_sym = factory.create(offsets, {(2, 1, 0): 1}, spacing=Spacing(1),
+                                 symbolic=True)
+
         assert d3_dx2dy_sym[(-1, -1, 0)] == -Rational(1, 2)
 
-    def test_wave_equation_stencil(self):
-        D = DerivativeSymbol
-        dt = Symbol(r'\Delta t', real=True)
-        dx = Symbol(r'\Delta x', real=True)
-        d2_dx2 = Stencil(offsets=[(0, 1), (0, 0), (0, -1)], partials=D(1, 2), spacings=(dt, dx), symbolic=True)
+
+class UnitTestsStencilSet(unittest.TestCase):
+    ...
 
 
-class TestStencil1D(unittest.TestCase):
+class IntegrationTestsStencilSet(unittest.TestCase):
 
-    def test_stencil1d(self):
-        s = Stencil1D(2, [-1, 0, 1], 1)
-        print(repr(s))
-
-    def test_stencil1d(self):
-        s = Stencil1D(2, [-1, 0, 1], 1)
-        assert {-1: 1, 0: -2, 1: 1} == s.as_dict()
-
-    def test_symmetricstencil1d(self):
-        s = SymmetricStencil1D(2, 1, 2)
-        assert {-1: 1, 0: -2, 1: 1} == s.as_dict()
-
-    def test_forwardstencil1d(self):
-        s = ForwardStencil1D(2, 1, 2)
-        assert_array_almost_equal([2, -5, 4, -1], s.coefficients)
-
-        s = ForwardStencil1D(1, 1, 2)
-        assert_array_almost_equal([-1.5, 2., -0.5], s.coefficients)
-
-    def test_backwardstencil1d(self):
-        s = BackwardStencil1D(2, 1, 2)
-        assert_array_almost_equal([-1, 4, -5, 2], s.coefficients)
-
-        s = BackwardStencil1D(1, 1, 2)
-        assert_array_almost_equal([0.5, -2, 1.5], s.coefficients)
-
-
-class TestGenericStencil(unittest.TestCase):
-
-    def test_generic_stencils_can_be_added(self):
-        stencil_1 = GenericStencil({(0, -1): 1., (0, 0): -2., (0, 1): 1.})
-        stencil_2 = GenericStencil({(0, -2): 1., (0, 0): -1., (0, 1): 1.})
-        result = stencil_1 + stencil_2
-        self.assertEqual(
-            {(0, -2): 1, (0, -1): 1., (0, 0): -3., (0, 1): 2.},
-            result.as_dict()
-        )
-
-    def test_generic_stencils_can_be_multiplied(self):
-        stencil = GenericStencil({(0, -1): 1., (0, 0): -2., (0, 1): 1.})
-        result = stencil * 2
-        self.assertEqual(
-            {(0, -1): 2., (0, 0): -4., (0, 1): 2.},
-            result.as_dict()
-        )
-        result = 2 * stencil
-        self.assertEqual(
-            {(0, -1): 2., (0, 0): -4., (0, 1): 2.},
-            result.as_dict()
-        )
-
-
-class TestStencilSet(unittest.TestCase):
-
-    def test_stencilset_for_partial_2d(self):
-        pd = PartialDerivative({1: 2})
-        grid = EquidistantGrid((0, 10, 11), (0, 10, 11))
+    def test_create_stencilset_1d(self):
+        pd = PartialDerivative({0: 2})
+        spacing = Spacing({0: 1})
+        ndims = 1
         acc = 2
-        stencil_set = StencilSet(pd, grid, acc)
+        stencil_set = StencilSet(pd, spacing, ndims, acc)
 
-        self.assertEqual({(0, -1): 1., (0, 0): -2., (0, 1): 1.}, stencil_set[('C', 'C')].as_dict())
+        stencil = stencil_set[('C',)]
+        self.assertEqual(
+            {(0,): -2, (-1,): 1, (1,): 1},
+            stencil.as_dict()
+        )
 
+        stencil = stencil_set[('L',)]
+        self.assertEqual(
+            {(0,): 2.0, (1,): -5.0, (2,): 4.0, (3,): -1.0},
+            stencil.as_dict()
+        )
 
+        stencil = stencil_set[('H',)]
+        self.assertEqual(
+            {(-3,): -1.0, (-2,): 4.0, (-1,): -5.0, (0,): 2.0},
+            stencil.as_dict()
+        )
+
+    def test_stencilset_can_be_applied_1d(self):
+        x = np.linspace(0, 1, 100)
+        dx = x[1] - x[0]
+        f = x**3
+        pd = PartialDerivative({0: 2})
+        spacing = Spacing({0: dx})
+        stencil_set = StencilSet(pd, spacing, ndims=1, acc=2)
+
+        actual = stencil_set.apply(f)
+
+        assert_allclose(6*x, actual, atol=1E-10)
+
+    def test_stencilset_can_be_applied_2d(self):
+        x = y = np.linspace(0, 1, 10)
+        dx = dy = x[1] - x[0]
+        X, Y = np.meshgrid(x, y, indexing='ij')
+        f = X
+        pd = PartialDerivative({0: 1})
+        spacing = Spacing({0: dx, 1: dy})
+        stencil_set = StencilSet(pd, spacing, ndims=2, acc=2)
+
+        actual = stencil_set.apply(f)
+
+        assert_allclose(np.ones_like(f), actual, atol=1E-10)
+
+    def test_stencilset_can_be_applied_2d_mixed(self):
+        x = y = np.linspace(0, 1, 11)
+        dx = dy = x[1] - x[0]
+        X, Y = np.meshgrid(x, y, indexing='ij')
+        f = X*Y
+        pd = PartialDerivative({0: 1, 1: 1})
+        spacing = Spacing({0: dx, 1: dy})
+        stencil_set = StencilSet(pd, spacing, ndims=2, acc=2)
+
+        actual = stencil_set.apply(f)
+
+        assert_allclose(np.ones_like(f), actual, atol=1E-10)

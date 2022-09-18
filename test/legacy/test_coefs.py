@@ -109,7 +109,6 @@ class TestCoefs(unittest.TestCase):
 
     def test_calc_accuracy_from_offsets_symbolic(self):
         coefs = coefficients(1, offsets=[-4, -2, 0, 2, 4], symbolic=True)
-
         self.assertEqual(4, coefs["accuracy"])
 
     def test_calc_coefs_from_offsets(self):

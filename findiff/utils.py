@@ -38,3 +38,8 @@ def to_index_tuple(long_idx, shape):
         long_idx = long_idx - s * idx[k]
 
     return tuple(idx)
+
+
+def require_parameter(parameter_name, kwargs_dict, function_name):
+    if parameter_name not in kwargs_dict:
+        raise ValueError('%s: Parameter "%s" not given.' % (function_name, parameter_name))

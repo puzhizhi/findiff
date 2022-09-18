@@ -4,9 +4,10 @@ import numpy as np
 from numpy.testing import assert_array_almost_equal, assert_array_equal
 
 import findiff
-from findiff import FinDiff, BoundaryConditions, PDE
+from findiff import FinDiff, BoundaryConditions, PDE, EquidistantGrid
 from findiff.conflicts import Coef, Identity
-from findiff.core.deriv import matrix_repr, PartialDerivative, EquidistantGrid
+from findiff.core.deriv import PartialDerivative
+from findiff.core.matrix import matrix_repr
 
 findiff.__deprecation_warning__ = False
 
@@ -54,7 +55,7 @@ class TestFinDiff(unittest.TestCase):
 
         d2_dxdy = FinDiff((0, dx, 2), (1, dy, 2))
         actual = d2_dxdy.matrix(f.shape)
-        expected = matrix_repr(PartialDerivative({0: 2, 1: 2}), acc=2, grid=grid)
+        expected = matrix_repr(PartialDerivative({0: 2, 1: 2}),,
         assert_array_almost_equal(actual.toarray(), expected.toarray())
 
 

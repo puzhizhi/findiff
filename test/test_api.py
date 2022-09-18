@@ -4,12 +4,13 @@ import numpy as np
 import sympy
 from numpy.testing import assert_array_almost_equal
 
-from findiff import Diff, core, Stencil
+import findiff.core.matrix
+from findiff import Diff, EquidistantGrid, Spacing
+from findiff import InvalidGrid, InvalidArraySize
 from findiff.api import matrix_repr, stencils_repr
 from findiff.conflicts import Coef
-from findiff import InvalidGrid, InvalidArraySize
 from findiff.core.algebraic import Add
-from findiff.core.deriv import PartialDerivative, EquidistantGrid
+from findiff.core.deriv import PartialDerivative
 
 
 class TestDiff(unittest.TestCase):
@@ -240,19 +241,13 @@ class TestMatrixRepr(unittest.TestCase):
     def test_matrix_repr_laplace_2d(self):
         laplace = Diff(0, 2) + Diff(1, 2)
         actual = matrix_repr(laplace, shape=(10, 10), spacings={0: 1, 1: 1})
-        expected = core.deriv.matrix_repr(
-            Add(PartialDerivative({0: 2}), PartialDerivative({1: 2})),
-            acc=2, grid=EquidistantGrid.from_shape_and_spacings((10, 10), spacings={0: 1, 1: 1})
-        )
+        expected = findiff.core.matrix.matrix_repr(Add(PartialDerivative({0: 2}), PartialDerivative({1: 2})),,
         assert_array_almost_equal(actual.toarray(), expected.toarray())
 
     def test_matrix_repr_with_single_spacing(self):
         laplace = Diff(0, 2) + Diff(1, 2)
         actual = matrix_repr(laplace, shape=(10, 10), spacings=1)
-        expected = core.deriv.matrix_repr(
-            Add(PartialDerivative({0: 2}), PartialDerivative({1: 2})),
-            acc=2, grid=EquidistantGrid.from_shape_and_spacings((10, 10), spacings={0: 1, 1: 1})
-        )
+        expected = findiff.core.matrix.matrix_repr(Add(PartialDerivative({0: 2}), PartialDerivative({1: 2})),,
         assert_array_almost_equal(actual.toarray(), expected.toarray())
 
     def test_matrix_repr_with_negative_spacing_raises_exception(self):
@@ -289,21 +284,15 @@ class TestMatrixRepr(unittest.TestCase):
 
 class TestStencils(unittest.TestCase):
 
-    def assert_stencilset_equal(self, stl_set_1, stl_set_2):
-        assert stl_set_1.keys() == stl_set_2.keys()
-        for key in stl_set_1.keys():
-            stl_1 = stl_set_1[key]
-            stl_2 = stl_set_2[key]
-            assert stl_1.keys() == stl_2.keys()
-            assert list(stl_1.values()) == list(stl_2.values())
-
     def test_stencils_for_d_dx(self):
         d_dx = Diff(0)
-        grid = EquidistantGrid((0, 10, 11))
-        actual = stencils_repr(d_dx, grid)
+        acc = 2
+        ndims = 1
+        actual = stencils_repr(d_dx, Spacing(1), ndims, acc)
         expected = {
             ('L',): {(0,): -1.5, (1,): 2.0, (2,): -0.5},
             ('C',): {(-1,): -0.5, (0,): 0.0, (1,): 0.5},
             ('H',): {(-2,): 0.5, (-1,): -2.0, (0,): 1.5}}
-        self.assert_stencilset_equal(actual.as_dict(), expected)
 
+        for pos in [('L',), ('C',), ('H',)]:
+            self.assertEqual(expected[pos], actual[pos].as_dict())
