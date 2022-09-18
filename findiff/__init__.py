@@ -16,12 +16,13 @@ __deprecation_warning__ = True
 import findiff.legacy as legacy
 import findiff.api as api
 
-from .api import Diff
+from .api import Diff, matrix_repr, stencils_repr
 from .core.grids import EquidistantGrid, Spacing
 from .core.stencils import Stencil
 from .core.exceptions import InvalidGrid, InvalidArraySize
 from .symbolics import Equation
 
+from .core import DEFAULT_ACCURACY
 
 # Legacy, yields deprecation warning:
 from .legacy import FinDiff, Identity, coefficients

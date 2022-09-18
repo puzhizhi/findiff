@@ -1,3 +1,5 @@
+from itertools import product
+
 import numpy as np
 import scipy
 
@@ -6,7 +8,7 @@ from findiff.core.algebraic import Numberlike, Operation
 from findiff.core.deriv import PartialDerivative
 from findiff.core.stencils import StencilStore, SymmetricStencil, ForwardStencil, BackwardStencil, StandardStencilSet, \
     TrivialStencilSet
-from findiff.utils import long_indices_as_ndarray, to_long_index, require_parameter, require_exactly_one_parameter
+from findiff.utils import require_parameter, require_exactly_one_parameter
 
 
 def matrix_repr(expr, **kwargs):
@@ -176,3 +178,22 @@ def _parse_stencils_repr_kwargs(**kwargs):
         ndims = grid.ndims
     acc = kwargs.get('acc', DEFAULT_ACCURACY)
     return spacing, ndims, acc
+
+
+def to_long_index(idx, shape):
+    ndims = len(shape)
+    long_idx = 0
+    siz = 1
+    for axis in range(ndims):
+        long_idx += idx[ndims-1-axis] * siz
+        siz *= shape[ndims-1-axis]
+    return long_idx
+
+
+def long_indices_as_ndarray(shape):
+    return np.array(list(range(np.prod(shape)))).reshape(shape)
+
+
+def all_index_tuples_as_list(shape):
+    ndims = len(shape)
+    return list(product(*tuple([list(range(shape[k])) for k in range(ndims)])))

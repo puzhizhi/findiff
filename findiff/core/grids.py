@@ -10,22 +10,27 @@ from findiff.core.exceptions import InvalidGrid
 class Spacing:
 
     def __init__(self, spacing_dict):
-
         if isinstance(spacing_dict, dict):
             self.isotrop = False
             for axis, value in spacing_dict.items():
                 if isinstance(value, str):
                     spacing_dict[axis] = sympy.Symbol(value)
+                elif value <= 0:
+                    raise InvalidGrid('Spacing value must be positive.')
             self._data = spacing_dict
         else:
             self.isotrop = True
             if isinstance(spacing_dict, str):
                 spacing_dict = Symbol(spacing_dict)
+            elif spacing_dict <= 0:
+                raise InvalidGrid('Spacing value must be positive.')
             self._data = spacing_dict
 
     def for_axis(self, axis):
         if self.isotrop:
             return self._data
+        if axis not in self._data:
+            raise InvalidGrid('Axis %d is not defined.' % axis)
         return self._data[axis]
 
     def __getitem__(self, axis):

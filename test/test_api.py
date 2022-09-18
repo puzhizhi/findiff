@@ -4,10 +4,9 @@ import numpy as np
 import sympy
 from numpy.testing import assert_array_almost_equal
 
-import findiff.core.reprs
-from findiff import Diff, EquidistantGrid, Spacing
+from findiff import Diff, Spacing
 from findiff import InvalidGrid, InvalidArraySize
-from findiff.api import matrix_repr, stencils_repr
+from findiff import matrix_repr, stencils_repr
 from findiff.conflicts import Coef
 from findiff.core.algebraic import Add
 from findiff.core.deriv import PartialDerivative
@@ -226,7 +225,7 @@ class TestMatrixRepr(unittest.TestCase):
     def test_matrix_repr_of_second_deriv_1d_acc2(self):
         x = np.linspace(0, 6, 7)
         d2_dx2 = Diff(0, 2)
-        actual = matrix_repr(d2_dx2, shape=x.shape, spacings={0: 1})
+        actual = matrix_repr(d2_dx2, shape=x.shape, spacing=Spacing({0: 1}))
 
         expected = [[2, - 5, 4, - 1, 0, 0, 0],
                     [1, - 2, 1, 0, 0, 0, 0],
@@ -240,30 +239,30 @@ class TestMatrixRepr(unittest.TestCase):
 
     def test_matrix_repr_laplace_2d(self):
         laplace = Diff(0, 2) + Diff(1, 2)
-        actual = matrix_repr(laplace, shape=(10, 10), spacings={0: 1, 1: 1})
-        expected = findiff.core.matrix.matrix_repr(Add(PartialDerivative({0: 2}), PartialDerivative({1: 2})),,
+        actual = matrix_repr(laplace, shape=(10, 10), spacing=Spacing(1))
+        expected = matrix_repr(Add(PartialDerivative({0: 2}), PartialDerivative({1: 2})),shape=(10, 10), spacing=Spacing(1))
         assert_array_almost_equal(actual.toarray(), expected.toarray())
 
     def test_matrix_repr_with_single_spacing(self):
         laplace = Diff(0, 2) + Diff(1, 2)
-        actual = matrix_repr(laplace, shape=(10, 10), spacings=1)
-        expected = findiff.core.matrix.matrix_repr(Add(PartialDerivative({0: 2}), PartialDerivative({1: 2})),,
+        actual = matrix_repr(laplace, shape=(10, 10), spacing=Spacing(1))
+        expected = matrix_repr(Add(PartialDerivative({0: 2}), PartialDerivative({1: 2})),shape=(10, 10), spacing=Spacing(1))
         assert_array_almost_equal(actual.toarray(), expected.toarray())
 
     def test_matrix_repr_with_negative_spacing_raises_exception(self):
         laplace = Diff(0, 2) + Diff(1, 2)
         with self.assertRaises(InvalidGrid):
-            matrix_repr(laplace, shape=(10, 10), spacings=-1)
+            matrix_repr(laplace, shape=(10, 10), spacing=-1)
 
     def test_matrix_repr_with_incomplete_spacing_raises_exception(self):
         laplace = Diff(0, 2) + Diff(1, 2)
         with self.assertRaises(InvalidGrid):
-            matrix_repr(laplace, shape=(10, 10), spacings={1: 1})
+            matrix_repr(laplace, shape=(10, 10), spacing={0: 1})
 
     def test_matrix_repr_with_invalid_shape_raises_exception(self):
         laplace = Diff(0, 2) + Diff(1, 2)
         with self.assertRaises(InvalidGrid) as e:
-            matrix_repr(laplace, shape=10, spacings={1: 1})
+            matrix_repr(laplace, shape=10, spacing=Spacing({1: 1}))
             assert 'must be tuple' in str(e)
 
     def test_matrix_repr_with_single_spacing_applied(self):
@@ -275,7 +274,7 @@ class TestMatrixRepr(unittest.TestCase):
         h = x[1] - x[0]
 
         laplace = Diff(0, 2) + Diff(1, 2)
-        matrix = matrix_repr(laplace, shape=shape, spacings=h)
+        matrix = matrix_repr(laplace, shape=shape, spacing=h)
         actual = matrix.dot(f.reshape(-1)).reshape(shape)
 
         expected = 4 * np.ones_like(f)
@@ -286,9 +285,7 @@ class TestStencils(unittest.TestCase):
 
     def test_stencils_for_d_dx(self):
         d_dx = Diff(0)
-        acc = 2
-        ndims = 1
-        actual = stencils_repr(d_dx, Spacing(1), ndims, acc)
+        actual = stencils_repr(d_dx, spacing=Spacing(1), ndims=1, acc=2)
         expected = {
             ('L',): {(0,): -1.5, (1,): 2.0, (2,): -0.5},
             ('C',): {(-1,): -0.5, (0,): 0.0, (1,): 0.5},

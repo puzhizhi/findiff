@@ -19,3 +19,4 @@ from .stencils import StandardStencilFactory, StencilFactory
 from .stencils import Stencil, SymmetricStencil, ForwardStencil, BackwardStencil
 from .stencils import StencilSet, TrivialStencilSet, StandardStencilSet
 from .stencils import StencilStore
+from .exceptions import *
