@@ -61,14 +61,19 @@ class Numberlike(Algebraic):
         super(Numberlike, self).__init__()
         self.value = value
 
-    def apply(self, target, operation):
-        return operation(self.value, target)
+    def apply(self, target):
+        return self.value * target
 
     def __repr__(self):
         return '%s(%s)' % (self.__class__.__name__, str(self.value))
 
     def __str__(self):
         return str(self.value)
+
+    def __eq__(self, other):
+        if not isinstance(other, Numberlike):
+            return False
+        return self.value == other.value
 
 
 class Operation(Algebraic):
@@ -115,7 +120,7 @@ class Mul(Operation):
 
         for side in [self.right, self.left]:
             if isinstance(side, Numberlike): # simplgy multiply
-                res = side.apply(target, self.operation)
+                res = side.apply(target)
             else: # may be specific operation, like partial derivative merging
                 res = side.apply(target, *args, **kwargs)
             target = res
@@ -134,12 +139,12 @@ class Add(Operation):
         if type(self.right) != Numberlike:
             right_result = self.right.apply(target, *args, **kwargs)
         else:
-            right_result = self.right.apply(target, self.operation)
+            right_result = self.right.apply(target)
 
         if type(self.left) != Numberlike:
             left_result = self.left.apply(target, *args, **kwargs)
         else:
-            left_result = self.left.apply(target, self.operation)
+            left_result = self.left.apply(target)
 
         return left_result + right_result
 

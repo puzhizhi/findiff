@@ -11,6 +11,8 @@ import numpy as np
 import sympy
 from sympy import Matrix
 
+from findiff.core import DEFAULT_ACCURACY
+
 
 class Stencil:
     """Stencil representation of a differential operator.
@@ -64,7 +66,7 @@ class Stencil:
         return self._data.get(offset, 0)
 
     def __str__(self):
-        return 'Length: ' + str(len(self._data)) + ' ' + str(self.as_dict())
+        return str(self.as_dict())
 
     def __repr__(self):
         return self.__str__()
@@ -187,7 +189,7 @@ class StandardStencilFactory:
     to evaluate partial derivatives.
     """
 
-    def create(self, stencil_type, deriv: int, spacing: float, acc=2, symbolic=False):
+    def create(self, stencil_type, deriv, spacing, acc=DEFAULT_ACCURACY, symbolic=False):
         """Factory method for creating a stencil of given type.
 
         Parameters

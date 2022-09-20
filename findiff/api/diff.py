@@ -1,7 +1,8 @@
 import numbers
 
-from findiff.core import InvalidArraySize, EquidistantGrid, InvalidGrid
+from findiff.core import InvalidArraySize, EquidistantGrid, InvalidGrid, DEFAULT_ACCURACY
 from findiff.core import PartialDerivative
+from findiff.utils import parse_spacing
 
 
 class Diff(PartialDerivative):
@@ -61,7 +62,7 @@ class Diff(PartialDerivative):
 
             Keywords:
 
-                spacings : dict
+                spacing : dict
                     Dictionary specifying the grid spacing (key=axis, value=spacing).
 
                 acc :  even int > 0, optional, default: 2
@@ -90,33 +91,19 @@ class Diff(PartialDerivative):
                                    'Has %d but needs at least %d' % (f.ndim, max_axis))
 
         if 'spacings' in kwargs:
-            spacings = self._validate_and_convert_spacings(f.ndim, kwargs['spacings'])
-            ndims_effective = max(spacings.keys()) + 1
-            grid = EquidistantGrid.from_spacings(ndims_effective, spacings)
+            raise ValueError('Unknown argument "spacings". Did you mean "spacing"?')
+
+        if 'spacing' in kwargs:
+            spacing = parse_spacing(kwargs['spacing'])
+            # Assert that spacings along all axes are defined, where derivatives need:
+            for axis in self.axes:
+                assert spacing.for_axis(axis)
         else:
-            raise InvalidGrid('No spacings defined when applying Diff.')
+            raise InvalidGrid('No spacing defined when applying Diff.')
 
-        # accuracy is optional
-        if 'acc' in kwargs:
-            acc = kwargs['acc']
-        else:
-            acc = 2
+        acc = kwargs.get('acc', DEFAULT_ACCURACY)
 
-        return super().apply(f, grid, acc)
-
-    def _validate_and_convert_spacings(self, ndim, spacings):
-        if not isinstance(spacings, dict):
-            is_positive_number = isinstance(spacings, numbers.Real) and spacings > 0
-            if is_positive_number:
-
-                spacings = {axis: spacings for axis in range(ndim)}
-            else:
-                raise InvalidGrid('spacings keyword argument must be a dict or single number.')
-        # Assert that spacings along all axes are defined, where derivatives need:
-        for axis in self.axes:
-            if axis not in spacings:
-                raise InvalidGrid('No spacings along axis %d defined.' % axis)
-        return spacings
+        return super().apply(f, spacing=spacing, acc=acc)
 
     def _validate_degrees_dict(self, degrees):
         assert isinstance(degrees, dict)

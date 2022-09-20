@@ -18,7 +18,7 @@ import findiff.api as api
 
 from .api import Diff, matrix_repr, stencils_repr
 from .core.grids import EquidistantGrid, Spacing
-from .core.stencils import Stencil
+from .core.stencils import Stencil, StencilFactory
 from .core.exceptions import InvalidGrid, InvalidArraySize
 from .symbolics import Equation
 

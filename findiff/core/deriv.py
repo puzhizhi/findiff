@@ -11,9 +11,11 @@ import numbers
 
 import numpy as np
 
+from findiff.core import DEFAULT_ACCURACY
 from findiff.core.algebraic import Algebraic, Mul
 from findiff.core.grids import Spacing, EquidistantGrid
 from findiff.core.stencils import StandardStencilSet
+from findiff.utils import require_exactly_one_parameter, parse_spacing
 
 
 class PartialDerivative(Algebraic):
@@ -46,7 +48,7 @@ class PartialDerivative(Algebraic):
     def __mul__(self, other):
         """Multiply PartialDerivative instance with some other object.
 
-        Overrides the method from the Arithmetic class to allow for merging
+        Overrides the method from the Algebraic class to allow for merging of
         two PartialDerivative objects into one.
         """
         if type(other) != PartialDerivative:
@@ -83,14 +85,14 @@ class PartialDerivative(Algebraic):
             )
         )
 
-    def apply(self, arr, grid_or_spacing, acc):
+    def apply(self, arr, **kwargs):
         """Applies the partial derivative to an array.
 
         Parameters
         ----------
         arr : array-like
             The array that shall be differentiated.
-        grid : Spacing
+        grid_or_spacing : Spacing or EquidistantGrid
             The spacing(s) of the numerical grid.
         acc : positive even int
             The accuracy order.
@@ -104,11 +106,17 @@ class PartialDerivative(Algebraic):
         if not isinstance(arr, np.ndarray):
             raise TypeError('Can only apply derivative to NumPy arrays. Instead got %s.' % (arr.__class__.__name__))
 
-        if isinstance(grid_or_spacing, EquidistantGrid):
-            grid = grid_or_spacing
+        found_para = require_exactly_one_parameter(
+            ['spacing', 'grid'], kwargs, 'PartialDerivative.apply')
+
+        if found_para == 'grid':
+            grid = kwargs['grid']
             spacing = Spacing({axis: grid.spacing(axis) for axis in self.axes})
         else:
-            spacing = grid_or_spacing
+            spacing = parse_spacing(kwargs['spacing'])
+
+        acc = kwargs.get('acc', DEFAULT_ACCURACY)
+
         stencil_set = StandardStencilSet(self, spacing, arr.ndim, acc)
         return stencil_set.apply(arr)
 

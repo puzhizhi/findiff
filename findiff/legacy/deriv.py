@@ -3,16 +3,16 @@ import logging
 import numpy as np
 import scipy.sparse
 
-from findiff.core.stencils import Stencil, SymmetricStencil, ForwardStencil, BackwardStencil, StandardStencilFactory, \
-    StencilFactory, StencilSet
-from findiff.core.grids import Spacing
-from findiff.core.algebraic import Algebraic, Numberlike, Add, Mul, Operation
+from findiff.core import DEFAULT_ACCURACY
+from findiff.core.algebraic import Numberlike, Add, Mul, Operation
 from findiff.core.deriv import PartialDerivative
 from findiff.core.grids import EquidistantGrid
-from findiff.core.reprs import matrix_repr, stencils_repr
+from findiff.core.grids import Spacing
+from findiff.core.reprs import matrix_repr
 from findiff.core.stencils import StandardStencilSet
+from findiff.core.stencils import SymmetricStencil, ForwardStencil, BackwardStencil, StandardStencilFactory, \
+    StencilFactory
 from findiff.legacy.pde import BoundaryConditions
-
 
 __all__ = [
     'FinDiff', 'Coef', 'Identity', 'coefficients', 'Gradient', 'Divergence', 'Curl', 'Laplacian'
@@ -122,7 +122,7 @@ class FinDiff(PartialDerivative):
         return self.apply(f)
 
     def apply(self, f):
-        return self.partial.apply(f, self.grid, self.acc)
+        return self.partial.apply(f, grid=self.grid, acc=self.acc)
 
     def matrix(self, shape, acc=None):
         acc = acc or self.acc
@@ -191,7 +191,7 @@ class DirtyMixin:
         self.add_handler = DirtyAdd
         self.mul_handler = DirtyMul
 
-    def matrix(self, shape, acc=2):
+    def matrix(self, shape, acc=DEFAULT_ACCURACY):
         deprecation_warning('Method "matrix"')
         if isinstance(self, Operation):
             left = self.left.matrix(shape)
@@ -598,7 +598,7 @@ class Laplacian(object):
 
     legacy = True
 
-    def __init__(self, h=[1.], acc=2):
+    def __init__(self, h=[1.], acc=DEFAULT_ACCURACY):
         deprecation_warning(self.__class__.__name__)
         h = wrap_in_ndarray(h)
 
@@ -623,21 +623,6 @@ class Laplacian(object):
             laplace_f += part(f)
 
         return laplace_f
-
-
-class LegacyStandardStencilSet(StandardStencilSet):
-
-    def __init__(self, stencil_set):
-        assert isinstance(stencil_set, StandardStencilSet)
-        self._stencils = stencil_set._stencils
-        self.ndims = stencil_set.ndims
-        self.inner_mask = None
-
-    def apply_all(self, arr):
-        return self.stencil_set.apply(arr)
-
-    def apply(self, arr, idx):
-        return self.stencil_set.apply(arr)[idx]
 
 
 def wrap_in_ndarray(value):

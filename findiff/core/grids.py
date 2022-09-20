@@ -8,11 +8,23 @@ from findiff.core.exceptions import InvalidGrid
 
 
 class Spacing:
+    """Describes the spacings of a numerical grid."""
 
     def __init__(self, spacing_dict):
+        """Constructor
+
+        Parameters
+        ----------
+        spacing_dict : float or dict
+            If one float is given, all axes have the same spacing.
+            If a dict is given, you can specify different spacings along different axes
+            as key (axis) - value (spacing) pairs.
+        """
         if isinstance(spacing_dict, dict):
-            self.isotrop = False
+            self.isotropic = False
             for axis, value in spacing_dict.items():
+                if not isinstance(axis, numbers.Integral) or axis < 0:
+                    raise ValueError('Axis index must be nonnegative.')
                 if isinstance(value, str):
                     spacing_dict[axis] = sympy.Symbol(value)
                 elif isinstance(value, Symbol):
@@ -21,7 +33,7 @@ class Spacing:
                     raise InvalidGrid('Spacing value must be positive.')
             self._data = spacing_dict
         else:
-            self.isotrop = True
+            self.isotropic = True
             if isinstance(spacing_dict, str):
                 spacing_dict = Symbol(spacing_dict)
             elif isinstance(spacing_dict, Symbol):
@@ -31,34 +43,42 @@ class Spacing:
             self._data = spacing_dict
 
     def for_axis(self, axis):
-        if self.isotrop:
+        if self.isotropic:
             return self._data
         if axis not in self._data:
             raise InvalidGrid('Axis %d is not defined.' % axis)
         return self._data[axis]
 
     def __getitem__(self, axis):
-        if self.isotrop:
+        if self.isotropic:
             return self._data
+        if axis not in self._data:
+            raise InvalidGrid('No such axis defined: %d' % axis)
         return self._data[axis]
 
     def __setitem__(self, axis, value):
-        if self.isotrop:
+        if self.isotropic:
             raise ValueError('Cannot set single axis spacing for isotropic object.')
         self._data[axis] = value
 
+    @property
+    def axes(self):
+        if self.isotropic:
+            raise ValueError('Cannot infer number of dimensions for isotropic spacing.')
+        return list(sorted(self._data.keys()))
+
     def keys(self):
-        if self.isotrop:
+        if self.isotropic:
             raise ValueError('Cannot infer number of dimensions for isotropic spacing.')
         return self._data.keys()
 
     def values(self):
-        if self.isotrop:
+        if self.isotropic:
             raise ValueError('Cannot infer number of dimensions for isotropic spacing.')
         return self._data.values()
 
     def items(self):
-        if self.isotrop:
+        if self.isotropic:
             raise ValueError('Cannot infer number of dimensions for isotropic spacing.')
         return self._data.items()
 

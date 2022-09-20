@@ -37,39 +37,3 @@ def coefficients(deriv, acc=None, offsets=None, symbolic=False):
     if acc:
         return findiff.legacy.coefficients(deriv, acc=acc, symbolic=symbolic)
     return findiff.legacy.coefficients(deriv, offsets=offsets, symbolic=True)
-
-
-def _validate_shape(shape):
-    if not isinstance(shape, tuple):
-        raise InvalidGrid('shape must be a tuple. Received: %s' % type(shape).__name__)
-    for axis in shape:
-        if axis <= 0:
-            raise InvalidGrid('Number of grid points must be positive. Received: %s' % shape)
-
-
-def _validate_and_convert_spacings(spacings, valid_shape):
-    """ Validates if the specified spacings are compatible with the shape.
-        Returns a dict of spacings.
-    """
-
-    ndims = len(valid_shape)
-
-    # Spacings may be a single number, which means same spacing along all axes.
-    if isinstance(spacings, numbers.Real):
-        if spacings <= 0:
-            raise InvalidGrid('Grid spacing must be > 0. Received: %f' % spacings)
-        spacings = {axis: spacings for axis in range(ndims)}
-    # Or it can be a dict. Then all axes must be provided:
-    else:
-        if set(spacings.keys()) != set(list(range(ndims))):
-            raise InvalidGrid('Not all spacings specified in dict.')
-        for spac in spacings.values():
-            if spac <= 0:
-                raise InvalidGrid('Grid spacing must be > 0. Received: %f' % spac)
-
-    return spacings
-
-
-def _validate_acc(acc):
-    if acc <= 0 or acc % 2:
-        raise ValueError('acc must be positive even integer. Received: %s' % str(acc))

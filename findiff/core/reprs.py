@@ -4,13 +4,13 @@ from itertools import product
 import numpy as np
 import scipy
 
-from findiff.core import Spacing
 from findiff.core import DEFAULT_ACCURACY
-from findiff.core.algebraic import Numberlike, Operation
+from findiff.core import Spacing
+from findiff.core.algebraic import Numberlike, Operation, Algebraic
 from findiff.core.deriv import PartialDerivative
 from findiff.core.stencils import StencilStore, SymmetricStencil, ForwardStencil, BackwardStencil, StandardStencilSet, \
     TrivialStencilSet
-from findiff.utils import require_parameter, require_exactly_one_parameter
+from findiff.utils import require_parameter, require_exactly_one_parameter, parse_spacing
 
 
 def matrix_repr(expr, **kwargs):
@@ -87,6 +87,51 @@ def matrix_repr(expr, **kwargs):
 
 
 def stencils_repr(expr, **kwargs):
+    """Returns the stencils of a given differential operator an a grid.
+
+        Parameters
+        ----------
+        expr : Algebraic
+             A general differential operator. Can be a partial derivative, a number,
+             an array or an algebraic expression.
+
+        kwargs :
+
+            Keyword arguments defining the numerical grid. There are two mutually exclusive
+            ways to specify this:
+
+            *Either* specify `grid` (an `EquidistantGrid` instance), *or* specify both
+            `spacing` (a `Spacing` instance) and `ndims` (int, the number of dimensions.
+
+            Optionally, specify `acc` for setting the accuracy order. If not given, defaults
+            to findiff.DEFAULT_ACCURACY.
+
+        Returns
+        -------
+        out : StencilSet
+            The stencils representing the differential operator.
+
+        Raises
+        ------
+        ValueError
+            in case of invalid combination of keyword arguments.
+
+        Examples
+        --------
+
+        The following example gives the matrix representation for the operator
+
+        .. math::
+            \frac{\partial}{\partial x} + 2 \frac{\partial^2}{\partial y^2}
+
+        for a grid spacing of 1 along all axes.
+
+        >>> expr = PartialDerivative({0: 1}) + 2 * PartialDerivative({1: 2})
+        >>> stencil_set = stencils_repr(expr, spacing=Spacing(1), ndims=2)
+        """
+
+    if not isinstance(expr, Algebraic):
+        raise TypeError('Expression must be instance of subclass of Algebraic.')
 
     spacing, ndims, acc = _parse_stencils_repr_kwargs(**kwargs)
 
@@ -100,17 +145,6 @@ def stencils_repr(expr, **kwargs):
         return expr.operation(left_result, right_result)
     else:
         raise TypeError('Cannot calculate matrix representation of type %s' % type(expr).__name__)
-
-
-def _parse_spacing(spacing):
-    if isinstance(spacing, Spacing):
-        return spacing
-    if isinstance(spacing, dict):
-        return Spacing(spacing)
-    if isinstance(spacing, numbers.Real):
-        return Spacing(spacing)
-    raise TypeError('Cannot parse this type (%s) to create Spacing instance.', type(spacing).__name__)
-
 
 
 def _matrix_expr_of_partial_derivative(partial, spacing, shape, acc):
@@ -171,7 +205,7 @@ def _parse_matrix_repr_kwargs(**kwargs):
     if found_para == 'spacing':
         spacing = kwargs[found_para]
         shape = require_parameter('shape', kwargs, 'matrix_repr')
-    else: # grid given
+    else:  # grid given
         grid = kwargs[found_para]
         shape = grid.shape
         spacing = grid.to_spacing()
@@ -180,12 +214,11 @@ def _parse_matrix_repr_kwargs(**kwargs):
 
 
 def _parse_stencils_repr_kwargs(**kwargs):
-    ## spacing, ndims, acc
     found_para = require_exactly_one_parameter(['spacing', 'grid'], kwargs, 'stencil_repr')
     if found_para == 'spacing':
-        spacing = _parse_spacing(kwargs[found_para])
+        spacing = parse_spacing(kwargs[found_para])
         ndims = require_parameter('ndims', kwargs, 'stencil_repr')
-    else: # found grid
+    else:  # found grid
         grid = kwargs[found_para]
         spacing = grid.to_spacing()
         ndims = grid.ndims
@@ -198,8 +231,8 @@ def to_long_index(idx, shape):
     long_idx = 0
     siz = 1
     for axis in range(ndims):
-        long_idx += idx[ndims-1-axis] * siz
-        siz *= shape[ndims-1-axis]
+        long_idx += idx[ndims - 1 - axis] * siz
+        siz *= shape[ndims - 1 - axis]
     return long_idx
 
 

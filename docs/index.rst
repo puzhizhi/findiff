@@ -28,9 +28,9 @@ Content
 -------
 
 .. toctree::
-    :maxdepth: 1
+    :maxdepth: 2
 
-    source/getstarted
+    source/usage
     source/examples
     source/theory
     source/citation

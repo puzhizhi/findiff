@@ -77,7 +77,7 @@ class TestsPartialDerivative(unittest.TestCase):
         x = grid.coords[0]
         f = np.sin(x)
         pd = PartialDerivative({0: 1})
-        df_dx = pd.apply(f, Spacing(x[1] - x[0]), 2)
+        df_dx = pd.apply(f, spacing=Spacing(x[1] - x[0]), acc=2)
 
         assert_array_almost_equal(np.cos(x[:1]), df_dx[:1], decimal=4)
         assert_array_almost_equal(np.cos(x[-1:]), df_dx[-1:], decimal=4)
@@ -88,7 +88,7 @@ class TestsPartialDerivative(unittest.TestCase):
         x = grid.coords[0]
         f = np.sin(x)
         pd = PartialDerivative({0: 1})
-        df_dx = pd.apply(f, Spacing(x[1] - x[0]), acc=4)
+        df_dx = pd.apply(f, spacing=Spacing(x[1] - x[0]), acc=4)
 
         assert_array_almost_equal(np.cos(x[:1]), df_dx[:1], decimal=6)
         assert_array_almost_equal(np.cos(x[-1:]), df_dx[-1:], decimal=6)
@@ -101,7 +101,7 @@ class TestsPartialDerivative(unittest.TestCase):
         f = np.sin(X) * np.sin(Y)
         pd = PartialDerivative({1: 2})
 
-        d2f_dy2 = pd.apply(f, Spacing(x[1] - x[0]), acc=4)
+        d2f_dy2 = pd.apply(f, spacing=Spacing(x[1] - x[0]), acc=4)
 
         assert_array_almost_equal(-np.sin(X) * np.sin(Y), d2f_dy2)
 
@@ -112,7 +112,7 @@ class TestsPartialDerivative(unittest.TestCase):
         f = np.sin(X) * np.sin(Y)
         pd = PartialDerivative({0: 1, 1: 1})
 
-        d2f_dxdy = pd.apply(f, Spacing(x[1] - x[0]), acc=4)
+        d2f_dxdy = pd.apply(f, spacing=Spacing(x[1] - x[0]), acc=4)
 
         assert_array_almost_equal(np.cos(X) * np.cos(Y), d2f_dxdy)
 
@@ -125,7 +125,7 @@ class TestsPartialDerivative(unittest.TestCase):
 
         D = 2 * d_dx
 
-        actual = D.apply(f, Spacing(dx), acc=4)
+        actual = D.apply(f, spacing=Spacing(dx), acc=4)
         assert_array_almost_equal(2 * np.cos(X) * np.sin(Y), actual)
 
     def test_disc_part_deriv_2d_mixed_with_mul(self):
@@ -137,7 +137,7 @@ class TestsPartialDerivative(unittest.TestCase):
         d_dy = PartialDerivative({1: 1})
 
         D = d_dx * 2 * d_dy
-        actual = D.apply(f, Spacing(dx), acc=4)
+        actual = D.apply(f, spacing=Spacing(dx), acc=4)
 
         assert_array_almost_equal(2 * np.cos(X) * np.cos(Y), actual)
 
@@ -149,7 +149,7 @@ class TestsPartialDerivative(unittest.TestCase):
 
         laplace = PartialDerivative({0: 2}) + PartialDerivative({1: 2})
 
-        actual = laplace.apply(f, grid, acc=4)
+        actual = laplace.apply(f, grid=grid, acc=4)
 
         assert_array_almost_equal(12 * X ** 2 + 12 * Y ** 2, actual)
 
@@ -160,7 +160,7 @@ class TestsPartialDerivative(unittest.TestCase):
 
         deriv = Coordinate(0) * PartialDerivative({0: 2})
 
-        actual = deriv.apply(f, grid, acc=4)
+        actual = deriv.apply(f, grid=grid, acc=4)
         assert_array_almost_equal(12 * x ** 3, actual)
 
     def test_disc_part_with_coordinates_2d(self):
@@ -170,7 +170,7 @@ class TestsPartialDerivative(unittest.TestCase):
 
         deriv = Coordinate(0) * PartialDerivative({0: 2}) + Coordinate(1) * PartialDerivative({1: 2})
 
-        actual = deriv.apply(f, grid, acc=4)
+        actual = deriv.apply(f, grid=grid, acc=4)
         assert_array_almost_equal(12 * X ** 3 + 12 * Y ** 3, actual)
 
     def test_disc_part_with_coordinates_chaining(self):
@@ -183,7 +183,7 @@ class TestsPartialDerivative(unittest.TestCase):
 
         deriv = deriv1 * deriv2
 
-        actual = deriv.apply(f, grid, acc=4)
+        actual = deriv.apply(f, grid=grid, acc=4)
         assert_array_almost_equal(72 * X ** 2 + 72 * Y ** 2, actual, decimal=4)
 
     def test_disc_part_with_coordinates_chaining_minus(self):
@@ -196,7 +196,7 @@ class TestsPartialDerivative(unittest.TestCase):
 
         deriv = deriv1 * deriv2
 
-        actual = deriv.apply(f, grid, acc=4)
+        actual = deriv.apply(f, grid=grid, acc=4)
         assert_array_almost_equal(72 * X ** 2 - 72 * Y ** 2, actual, decimal=4)
 
     def test_disc_part_with_unary_minus(self):
@@ -206,7 +206,7 @@ class TestsPartialDerivative(unittest.TestCase):
 
         deriv = - PartialDerivative({0: 1})
 
-        actual = deriv.apply(f, grid, acc=4)
+        actual = deriv.apply(f, grid=grid, acc=4)
         assert_array_almost_equal(-4 * X ** 3, actual, decimal=4)
 
     def test_disc_part_minus_laplace(self):
@@ -216,7 +216,7 @@ class TestsPartialDerivative(unittest.TestCase):
 
         laplace = PartialDerivative({0: 2}) + PartialDerivative({1: 2})
 
-        actual = (-laplace).apply(f, grid, acc=4)
+        actual = (-laplace).apply(f, grid=grid, acc=4)
         assert_array_almost_equal(-12 * X ** 2 - 12 * Y ** 2, actual, decimal=4)
 
     def test_repr(self):

@@ -10,6 +10,7 @@ from findiff.core import matrix_repr, stencils_repr
 
 
 #np.set_printoptions(edgeitems=30, linewidth=100000, formatter=dict(float=lambda x: "%.3f" % x))
+from test.base import TestBase
 
 
 class TestMatrixRepr(unittest.TestCase):
@@ -70,7 +71,7 @@ class TestMatrixRepr(unittest.TestCase):
         X, Y = grid.meshed_coords
         f = X ** 2 * Y ** 2
         d2_dxdx = PartialDerivative({0: 1, 1: 1})
-        expected = d2_dxdx.apply(f, grid, acc=2)
+        expected = d2_dxdx.apply(f, grid=grid, acc=2)
         actual = self.apply_with_matrix_repr(d2_dxdx, f, grid, acc=2)
         assert_array_almost_equal(expected, actual)
         assert_array_almost_equal(4 * X * Y, actual)
@@ -80,7 +81,7 @@ class TestMatrixRepr(unittest.TestCase):
         X, Y = grid.meshed_coords
         f = X ** 2 * Y ** 2
         diff_op = PartialDerivative({0: 1, 1: 1}) + PartialDerivative({0: 2})
-        expected = diff_op.apply(f, grid, acc=2)
+        expected = diff_op.apply(f, grid=grid, acc=2)
         actual = self.apply_with_matrix_repr(diff_op, f, grid, acc=2)
         assert_array_almost_equal(expected, actual)
         assert_array_almost_equal(4 * X * Y + 2 * Y ** 2, actual)
@@ -90,7 +91,7 @@ class TestMatrixRepr(unittest.TestCase):
         X, Y = grid.meshed_coords
         f = X ** 2 * Y ** 2
         diff_op = PartialDerivative({0: 1, 1: 1}) + 2 * PartialDerivative({0: 2})
-        expected = diff_op.apply(f, grid, acc=2)
+        expected = diff_op.apply(f, grid=grid, acc=2)
         actual = self.apply_with_matrix_repr(diff_op, f, grid, acc=2)
         assert_array_almost_equal(expected, actual)
         assert_array_almost_equal(4 * X * Y + 4 * Y ** 2, actual)
@@ -100,7 +101,7 @@ class TestMatrixRepr(unittest.TestCase):
         X, Y = grid.meshed_coords
         f = X ** 2 * Y ** 2
         diff_op = Coef(Y) * PartialDerivative({0: 1, 1: 1}) + Coef(X) * PartialDerivative({0: 2})
-        expected = diff_op.apply(f, grid, acc=2)
+        expected = diff_op.apply(f, grid=grid, acc=2)
         actual = self.apply_with_matrix_repr(diff_op, f, grid, acc=2)
         assert_array_almost_equal(expected, actual)
         assert_array_almost_equal(4 * X * Y ** 2 + 2 * X * Y ** 2, actual)
@@ -115,7 +116,7 @@ class TestMatrixRepr(unittest.TestCase):
         print(actual.toarray())
 
 
-class TestStencilsRepr(unittest.TestCase):
+class TestStencilsRepr(TestBase):
 
     def test_trivialstencilset_has_required_char_pts(self):
         nl = Numberlike(2)
@@ -147,6 +148,19 @@ class TestStencilsRepr(unittest.TestCase):
         laplacian = PartialDerivative({0: 2}) + 2 * PartialDerivative({1: 2})
         stencil_set = stencils_repr(laplacian, spacing=Spacing(1), ndims=2)
         self.assertEqual(
+            {(-1, 0): 1.0, (0, 0): -6.0, (1, 0): 1.0, (0, -1): 2.0, (0, 1): 2.0},
+            stencil_set[('C', 'C')].as_dict()
+        )
+
+    def test_pass_invalid_type_raises_exception(self):
+        with self.assertRaises(TypeError):
+            stencils_repr('bla')
+
+    def test_call_with_grid(self):
+        laplacian = PartialDerivative({0: 2}) + 2 * PartialDerivative({1: 2})
+        grid = EquidistantGrid((0, 10, 11), (0, 10, 11))
+        stencil_set = stencils_repr(laplacian, grid=grid)
+        self.assert_dict_values_almost_equal(
             {(-1, 0): 1.0, (0, 0): -6.0, (1, 0): 1.0, (0, -1): 2.0, (0, 1): 2.0},
             stencil_set[('C', 'C')].as_dict()
         )

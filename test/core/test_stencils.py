@@ -5,11 +5,13 @@ import numpy as np
 from numpy.testing import assert_allclose
 from sympy import Rational, Symbol, simplify
 
-from findiff.core import PartialDerivative, BackwardStencil
+from findiff.core import PartialDerivative, BackwardStencil, StencilStore
 from findiff.core import Stencil, StandardStencilFactory, SymmetricStencil, StandardStencilSet, StencilFactory
 from findiff.core import Spacing
 
 # Useful for debugging printouts of arrays
+from test.base import TestBase
+
 np.set_printoptions(edgeitems=30, linewidth=100000, formatter=dict(float=lambda x: "%.3f" % x))
 
 
@@ -372,10 +374,26 @@ class IntegrationTestsStencilSet(unittest.TestCase):
         assert_allclose(np.ones_like(f), actual, atol=1E-10)
 
 
-class TestBackwardStencil(unittest.TestCase):
+class TestBackwardStencil(TestBase):
 
     def test_first_deriv(self):
         factory = StandardStencilFactory()
 
         stencil = factory.create(BackwardStencil, 1, 1, acc=2, symbolic=False)
-        print(stencil)
+        self.assert_dict_values_almost_equal(
+            {(0,): 1.5, (-1,): -2.0, (-2,): 0.5},
+            stencil.as_dict()
+        )
+
+
+class TestStencilStore(TestBase):
+
+    def test_contains_one_symmetric_stencil_after_first_call(self):
+        stencil = StencilStore.get_stencil(SymmetricStencil, 2, 1)
+        assert (SymmetricStencil, (2, 1)) in StencilStore.registered_stencils
+        assert stencil in StencilStore.registered_stencils.values()
+
+    def test_reuses_stencil_on_second_call(self):
+        stencil1 = StencilStore.get_stencil(SymmetricStencil, 2, 1)
+        stencil2 = StencilStore.get_stencil(SymmetricStencil, 2, 1)
+        assert id(stencil1) == id(stencil2)
